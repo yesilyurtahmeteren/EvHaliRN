@@ -23,7 +23,7 @@
 | `flutter/services` `HapticFeedback` | Seçim/hafif/orta titreşim | `expo-haptics` | ❓ (Expo Go'da çalışır) |
 | `flutter/services` `Clipboard` | Davet kodu kopyalama | `expo-clipboard` | ❓ (Expo Go'da çalışır) |
 | `dart:math` `Random.secure` | Davet kodu | `expo-crypto` (`getRandomValues`) | ❓ (Expo Go'da çalışır) |
-| Material Icons | İkonlar | `@expo/vector-icons` (Expo'nun parçası) | ➖ |
+| Material Icons | İkonlar | `@expo/vector-icons` (Expo paketi; SDK 57'de ayrıca kuruluyor) | ✅ onaylandı |
 | Font asset | Plus Jakarta Sans | `expo-font` (Expo'nun parçası) | ➖ |
 | Splash | Açılış ekranı | `expo-splash-screen` (Expo'nun parçası) | ➖ |
 | `showModalBottomSheet` | Ürün formu | Expo Router `presentation: 'formSheet'`, yetmezse `@gorhom/bottom-sheet` | ✅ / ❓ |

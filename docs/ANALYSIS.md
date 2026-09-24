@@ -259,7 +259,6 @@ haritaları da kaynak dosyasına taşınacak. `joinNames` ("A, B ve C") yardımc
 ```
 app/
   _layout.tsx                 Providers (QueryClient, GestureHandler, Theme, i18n), font yükleme, splash
-  index.tsx                   → oturum/ev durumuna göre Redirect
   sign-in.tsx                 (oturumsuz)
   (app)/
     _layout.tsx               korumalı rota: oturum yoksa → /sign-in; users/{uid} hatası → HomeLoadError
@@ -271,6 +270,8 @@ app/
       profile.tsx             Profil
     item-form.tsx             presentation: 'formSheet' | 'modal'   params: { itemId?, initialName? }
 ```
+
+Not (Faz 2): kök `app/index.tsx` yok - `(app)/(tabs)/index.tsx` zaten `/` yolunu alıyor (gruplar URL'ye segment eklemez), ikisi çakışırdı. Yönlendirme `(app)/_layout.tsx` içinde.
 
 Parametreler: `homeId` URL'de taşınmayacak, oturum store'undan okunacak (Flutter'da da tek kaynak
 `users/{uid}.homeId`). `item-form` yalnızca `itemId` alacak; ürünü query cache'ten bulacak.

@@ -1,0 +1,7 @@
+android
+ios
+.expo
+node_modules
+coverage
+docs
+expo-env.d.ts

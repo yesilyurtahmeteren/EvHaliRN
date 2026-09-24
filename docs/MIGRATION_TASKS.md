@@ -99,20 +99,20 @@ src/
 
 ## Faz 2 — Proje İskeleti
 
-- [ ] `~/AndroidStudioProjects/EvHaliRN` altında Expo + TypeScript projesi oluştur (`npx create-expo-app@latest`, TypeScript şablonu).
-- [ ] `tsconfig.json`'da `strict: true` ve `@/*` → `src/*` path alias'ı.
-- [ ] ESLint + Prettier kurulumu ve `lint`, `format`, `typecheck`, `test` script'leri.
-- [ ] Bölüm 1'deki paketleri kur ve yapılandır:
-  - [ ] NativeWind (tailwind.config, babel/metro ayarları)
-  - [ ] TanStack Query (`QueryClientProvider` kök layout'ta)
-  - [ ] Reanimated + Gesture Handler
-  - [ ] i18next (Flutter'daki dillerle aynı diller)
-  - [ ] MMKV ve expo-secure-store için `src/shared/lib/storage.ts` sarmalayıcısı
-- [ ] Jest + React Native Testing Library kurulumu, örnek bir test yazıp çalıştır.
-- [ ] Flutter'daki temayı `src/shared/theme/` ve `tailwind.config` içine aktar (renkler, fontlar, koyu mod).
-- [ ] Asset'leri (görseller, fontlar, ikonlar) kopyala; uygulama ikonu ve splash screen'i `app.json`'da ayarla.
-- [ ] Faz 1'deki navigasyon ağacına göre Expo Router'da **boş** ekran dosyalarını oluştur (sadece başlık gösteren placeholder).
-- [ ] `.env.example` dosyası oluştur.
+- [x] `~/AndroidStudioProjects/EvHaliRN` altında Expo + TypeScript projesi oluştur (`npx create-expo-app@latest`, TypeScript şablonu).
+- [x] `tsconfig.json`'da `strict: true` ve `@/*` → `src/*` path alias'ı.
+- [x] ESLint + Prettier kurulumu ve `lint`, `format`, `typecheck`, `test` script'leri.
+- [x] Bölüm 1'deki paketleri kur ve yapılandır:
+  - [x] NativeWind (tailwind.config, babel/metro ayarları)
+  - [x] TanStack Query (`QueryClientProvider` kök layout'ta)
+  - [x] Reanimated + Gesture Handler
+  - [x] i18next (Flutter'daki dillerle aynı diller)
+  - [x] MMKV ve expo-secure-store için `src/shared/lib/storage.ts` sarmalayıcısı
+- [x] Jest + React Native Testing Library kurulumu, örnek bir test yazıp çalıştır.
+- [x] Flutter'daki temayı `src/shared/theme/` ve `tailwind.config` içine aktar (renkler, fontlar, koyu mod).
+- [x] Asset'leri (görseller, fontlar, ikonlar) kopyala; uygulama ikonu ve splash screen'i `app.json`'da ayarla.
+- [x] Faz 1'deki navigasyon ağacına göre Expo Router'da **boş** ekran dosyalarını oluştur (sadece başlık gösteren placeholder).
+- [x] `.env.example` dosyası oluştur.
 
 **Cihazda doğrulama:**
 - [ ] `adb devices` ile telefonun bağlı olduğunu kontrol et.

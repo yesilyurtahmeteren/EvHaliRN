@@ -1,0 +1,13 @@
+import { useTranslation } from 'react-i18next';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { PlaceholderScreen } from '@/shared/components/placeholder-screen';
+
+export default function ProfileTabScreen() {
+  const { t } = useTranslation();
+  return (
+    <SafeAreaView edges={['top']} className="flex-1 bg-surface">
+      <PlaceholderScreen title={t('nav.profile')} />
+    </SafeAreaView>
+  );
+}
