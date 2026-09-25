@@ -72,6 +72,11 @@ Bu dosya ile AGENTS.md çelişirse bu dosya kazanır (ör. build EAS değil, yer
 - Expo'nun debug anahtarı `android/app/debug.keystore` (Flutter'ın `~/.android/debug.keystore`'undan farklı);
   SHA'ları Firebase'e ayrıca eklenmeli. Play'deki Flutter sürümü telefondayken debug kurulumu imza
   uyuşmazlığıyla reddedilir.
+- 2026-09-25: Expo debug SHA1 `5E:8F:16…:F6:25` ve SHA256 `FA:C6:17…:3B:9C` Firebase'e eklendi
+  (`firebase apps:android:sha:create`, kullanıcı onayıyla). A53'te giriş dahil uçtan uca çalıştı.
+  `android/` (CNG) silinip yeniden üretilirse debug.keystore değişebilir; o zaman SHA'lar yeniden eklenmeli.
+  Google Sign-In'de imza kayıtsızsa ekranda hiçbir şey olmaz (Google bunu "vazgeçti" diye döner);
+  teşhis: `adb logcat -d | grep "not registered to use OAuth2.0"`.
 
 ## Flutter CLAUDE.md'den aynen geçerli olanlar
 
