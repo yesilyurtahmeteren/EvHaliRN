@@ -24,14 +24,24 @@ const tr = {
   home: {
     loadError: 'Ev bilgisi yüklenemedi. Bağlantını kontrol edip uygulamayı yeniden aç.',
   },
+  onboarding: {
+    title: 'Ev Oluştur',
+    createHomeDescription: 'Alışveriş listesini paylaşacağın bir ev oluştur.',
+    homeNameLabel: 'Ev adı',
+    createHomeButton: 'Ev Oluştur',
+    createHomeError: 'Ev oluşturulamadı, tekrar deneyin.',
+    orDivider: 'veya',
+    joinHomeDescription: 'Bir davet kodun varsa eve katıl.',
+    inviteCodeLabel: 'Davet kodu',
+    joinHomeButton: 'Eve Katıl',
+    invalidInviteCode: 'Geçersiz davet kodu.',
+  },
   nav: {
     home: 'Ev',
     shopping: 'Alışveriş',
     profile: 'Profil',
   },
   screens: {
-    signIn: 'Giriş',
-    createHome: 'Ev Oluştur',
     itemForm: 'İhtiyaç Ekle',
   },
   dev: {

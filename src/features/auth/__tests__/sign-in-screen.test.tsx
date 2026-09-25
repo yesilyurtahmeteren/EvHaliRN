@@ -35,6 +35,9 @@ function renderScreen() {
 }
 
 afterEach(async () => {
+  // TanStack'in setTimeout(0) ile geciktirdiği son durum bildirimi act içinde
+  // boşaltılsın ("not wrapped in act" uyarısı olmasın).
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
   await act(async () => hideToast());
   jest.clearAllMocks();
 });

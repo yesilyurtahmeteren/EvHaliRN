@@ -1,0 +1,92 @@
+import { getDoc, setDoc, updateDoc } from '@react-native-firebase/firestore';
+
+import { createHome, InvalidInviteCodeError, joinHome } from '@/features/home-onboarding/api';
+
+jest.mock('@react-native-firebase/firestore', () => ({
+  getFirestore: jest.fn(() => ({})),
+  collection: jest.fn((_db, name: string) => ({ collection: name })),
+  doc: jest.fn((parent: { collection?: string }, ...path: string[]) =>
+    path.length === 0
+      ? { id: 'newHome', path: `${parent.collection}/newHome` }
+      : { id: path[path.length - 1], path: path.join('/') },
+  ),
+  getDoc: jest.fn(),
+  setDoc: jest.fn(() => Promise.resolve()),
+  updateDoc: jest.fn(() => Promise.resolve()),
+  serverTimestamp: jest.fn(() => 'SERVER_TIMESTAMP'),
+  arrayUnion: jest.fn((...values: unknown[]) => ({ arrayUnion: values })),
+}));
+jest.mock('@/shared/lib/invite-code', () => ({
+  ...jest.requireActual('@/shared/lib/invite-code'),
+  generateInviteCode: () => 'AB7K9TQX',
+}));
+
+beforeEach(() => jest.clearAllMocks());
+
+const writes = () => [
+  ...jest
+    .mocked(setDoc)
+    .mock.calls.map(([ref, data]) => ['set', (ref as { path: string }).path, data]),
+  ...jest
+    .mocked(updateDoc)
+    .mock.calls.map(([ref, data]) => ['update', (ref as { path: string }).path, data]),
+];
+
+describe('createHome', () => {
+  it('Flutter ile aynı üç yazma: homes, invites, users.homeId (en son)', async () => {
+    await expect(createHome({ name: 'Yeşilyurt Evi', uid: 'u1' })).resolves.toBe('newHome');
+
+    expect(writes()).toEqual([
+      [
+        'set',
+        'homes/newHome',
+        {
+          name: 'Yeşilyurt Evi',
+          memberIds: ['u1'],
+          inviteCode: 'AB7K9TQX',
+          createdAt: 'SERVER_TIMESTAMP',
+        },
+      ],
+      ['set', 'invites/AB7K9TQX', { homeId: 'newHome', createdAt: 'SERVER_TIMESTAMP' }],
+      ['update', 'users/u1', { homeId: 'newHome' }],
+    ]);
+    // users.homeId sekmeleri açar; ev ve davet kodundan sonra yazılmalı.
+    const lastSet = Math.max(...jest.mocked(setDoc).mock.invocationCallOrder);
+    expect(jest.mocked(updateDoc).mock.invocationCallOrder[0]).toBeGreaterThan(lastSet);
+  });
+});
+
+describe('joinHome', () => {
+  it("boşluklu/küçük harfli kodu temizleyip kendi uid'ini ekler", async () => {
+    jest.mocked(getDoc).mockResolvedValue({
+      exists: () => true,
+      data: () => ({ homeId: 'h1', createdAt: null }),
+    } as never);
+
+    await expect(joinHome({ code: ' ab7k 9tqx ', uid: 'u2' })).resolves.toBe('h1');
+    expect(jest.mocked(getDoc).mock.calls[0][0]).toMatchObject({ path: 'invites/AB7K9TQX' });
+    expect(writes()).toEqual([
+      ['update', 'homes/h1', { memberIds: { arrayUnion: ['u2'] } }],
+      ['update', 'users/u2', { homeId: 'h1' }],
+    ]);
+  });
+
+  it('olmayan kodda InvalidInviteCodeError, hiçbir şey yazılmaz', async () => {
+    jest.mocked(getDoc).mockResolvedValue({ exists: () => false } as never);
+
+    await expect(joinHome({ code: 'ZZZZZZZZ', uid: 'u2' })).rejects.toBeInstanceOf(
+      InvalidInviteCodeError,
+    );
+    expect(writes()).toEqual([]);
+  });
+
+  it("boş ya da '/' içeren kod Firestore'a hiç sorulmaz", async () => {
+    await expect(joinHome({ code: '   ', uid: 'u2' })).rejects.toBeInstanceOf(
+      InvalidInviteCodeError,
+    );
+    await expect(joinHome({ code: 'AB/K9TQX', uid: 'u2' })).rejects.toBeInstanceOf(
+      InvalidInviteCodeError,
+    );
+    expect(getDoc).not.toHaveBeenCalled();
+  });
+});

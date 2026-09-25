@@ -67,7 +67,7 @@ export function Button({
       accessibilityState={{ disabled: disabled === true }}
       disabled={disabled}
       className={`flex-row items-center justify-center gap-sm rounded-full ${containerClass[variant]} ${
-        fullWidth ? 'self-stretch' : 'self-start'
+        fullWidth ? 'self-stretch' : ''
       } ${disabled === true ? 'opacity-40' : 'active:opacity-80'} ${className ?? ''}`}
     >
       {icon !== undefined && <MaterialIcons name={icon} size={20} color={colors[tone]} />}

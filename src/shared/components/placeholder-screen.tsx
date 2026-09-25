@@ -8,9 +8,9 @@ import { AppText } from './app-text';
 // Geçici ekran: başlık ve (oturum açıkken) diğer ekranlara bağlantılar.
 // Faz 4'te her feature taşındıkça gerçek ekranla değiştirilir. Faz 3'ten
 // beri /sign-in ile (app) korumalı rotalarla ayrıldığı için giriş ekranına
-// bağlantı yok; (app)'e ancak giriş yapılarak geçilir.
+// bağlantı yok; (app)'e ancak giriş yapılarak geçilir. Ev Oluştur da yalnızca
+// evi olmayana açık (HomeGate), bağlantı yok.
 const routes: { href: Href; label: string }[] = [
-  { href: '/create-home', label: 'create-home' },
   { href: '/', label: '(tabs)/index · Alışveriş' },
   { href: '/home', label: '(tabs)/home · Ev' },
   { href: '/profile', label: '(tabs)/profile · Profil' },

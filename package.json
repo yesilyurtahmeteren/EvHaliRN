@@ -80,6 +80,9 @@
       "^@/assets/(.*)$": "<rootDir>/assets/$1",
       "^@/(.*)$": "<rootDir>/src/$1"
     },
-    "resolver": "react-native-worklets/jest/resolver.js"
+    "resolver": "react-native-worklets/jest/resolver.js",
+    "setupFiles": [
+      "<rootDir>/jest.setup.ts"
+    ]
   }
 }

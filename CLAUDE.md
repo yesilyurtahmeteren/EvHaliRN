@@ -48,11 +48,14 @@ Bu dosya ile AGENTS.md çelişirse bu dosya kazanır (ör. build EAS değil, yer
   Okuma hatası "veri yok" ile karıştırılmaz, sorgu `error` durumuna düşer.
 - Yazma: `useFeedbackMutation` (hatada titreşim + Türkçe toast, `run()` bool döner). Hata sessizce yutulmaz.
 - Oturum: `useSessionStore` (tek yazan `useAuthListener`), (app) ekranlarında `useRequiredUser()`.
+- Ev: `users/{uid}` tek sorgu (`useUserDoc`); HomeGate `(app)/_layout.tsx`'te. Sekmeler evi
+  `useRequiredHomeId()` ile alır (HomeIdProvider, URL parametresi yok).
   Çıkışta `queryClient.clear()` tüm Firestore dinleyicilerini kapatır.
 - Modeller: `src/shared/schemas/`, katalog ID'si `normalizeName` (asla `toLocaleLowerCase('tr')`).
 - Testler: RNTL 14'te `render`, `renderHook`, `fireEvent.*`, `act` **async**, hepsi `await` edilmeli.
   Jest sahte zamanlayıcıları RNTL'nin async act'ini kilitliyor, kısa gerçek süre + `waitFor` kullan.
   Reanimated 4 için jest `resolver: react-native-worklets/jest/resolver.js` gerekli (package.json'da).
+  `jest.setup.ts` TanStack bildirimlerini eşzamanlı yapıyor (aksi halde "not wrapped in act" uyarıları).
   `npm test` sonunda "worker failed to exit gracefully" uyarısı çıkıyor ama testler geçiyor ve süreç kapanıyor.
   `--detectOpenHandles` bir kaynak göstermedi.
 - `expo-asset` doğrudan bağımlılık olarak eklendi (Faz 3): `expo`'nun iç bağımlılığıydı ama hoist
