@@ -33,6 +33,8 @@ export async function createHome({ name, uid }: { name: string; uid: string }): 
     memberIds: [uid],
     inviteCode: code,
     createdAt: serverTimestamp(),
+    // Evi kuran yönetici (firestore.rules: roles == {uid: 'admin'}).
+    roles: { [uid]: 'admin' },
   });
   await setDoc(doc(db, 'invites', code), {
     homeId: homeRef.id,
@@ -61,6 +63,18 @@ export async function joinHome({ code, uid }: { code: string; uid: string }): Pr
 
   await updateDoc(doc(db, 'homes', homeId), { memberIds: arrayUnion(uid) });
   await updateDoc(doc(db, 'users', uid), { homeId });
+  // Bildirimler ekranındaki "evinize katıldı" kaydı. Katılım zaten
+  // tamamlandı; bu kayıt yazılamazsa katılımı başarısız saymayız.
+  await setDoc(doc(collection(db, 'homes', homeId, 'events')), {
+    type: 'joined',
+    actorId: uid,
+    createdAt: serverTimestamp(),
+    readBy: [uid],
+  }).catch((error: unknown) => {
+    if (__DEV__) {
+      console.warn('joined event failed', error);
+    }
+  });
 
   return homeId;
 }

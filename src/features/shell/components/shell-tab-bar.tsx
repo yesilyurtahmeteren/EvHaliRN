@@ -1,118 +1,189 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import type { BottomTabBarProps } from 'expo-router/js-tabs';
-import type { ComponentProps } from 'react';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, View, type LayoutChangeEvent } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/shared/components/app-text';
+import { Box } from '@/shared/components/box';
+import { useShadow } from '@/shared/components/card';
+import { Icon, type IconName } from '@/shared/components/icon';
+import { PressScale } from '@/shared/components/press-scale';
 import { useToastStore } from '@/shared/components/toast/toast-store';
 import { useKeyboardVisible } from '@/shared/hooks/use-keyboard-visible';
-import { useAppTheme } from '@/shared/theme/theme-provider';
+import { Durations, Ease, fixedColors, sizes } from '@/shared/theme';
+import { useThemedStyle } from '@/shared/theme/use-theme-color';
 
-type IconName = ComponentProps<typeof MaterialIcons>['name'];
+export type ShellTab = 'home' | 'index' | 'profile';
 
-// Sekme route adı -> ikon. Alışveriş (index) ortadaki taşan düğme.
-const icons: Record<string, { icon: IconName; selectedIcon: IconName }> = {
-  home: { icon: 'home', selectedIcon: 'home' },
-  profile: { icon: 'person-outline', selectedIcon: 'person' },
-};
-const centerRoute = 'index';
-
-// Flutter MainShell _EvHaliBottomBar: beyaz zemin, yukarı doğru yumuşak
-// adaçayı gölge; ortadaki yeşil sepet düğmesi çubuğun 14px üstüne taşar.
-export function ShellTabBar({ state, descriptors, navigation, insets }: BottomTabBarProps) {
-  const { colors } = useAppTheme();
+// Main.dc.html alt gezinme (96 px, üst köşeler 28, `nav` zemin): Ev (sol),
+// Liste (ortada yükseltilmiş 70 px FAB), Profil (sağ). Aktif sekmede ikonun
+// arkasında `mint` hap 40 -> 64 px (300 ms easeOut), renk `brand`.
+// Bildirimler açıkken hiçbiri aktif değildir.
+export function ShellTabBar({
+  active,
+  onNavigate,
+}: {
+  active: ShellTab | null;
+  onNavigate: (tab: ShellTab) => void;
+}) {
+  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const shadow = useShadow('card');
   const setBottomOffset = useToastStore((s) => s.setBottomOffset);
-
   const keyboardVisible = useKeyboardVisible();
 
-  // Toast mesajları çubuğun altında kalmasın.
   useEffect(() => () => setBottomOffset(0), [setBottomOffset]);
-  const onLayout = (event: LayoutChangeEvent) => setBottomOffset(event.nativeEvent.layout.height);
-
-  // Flutter'da alt çubuk klavyenin arkasında kalıyordu; burada pencere
-  // klavyeye göre küçüldüğü için çubuk klavyenin üstüne çıkar, alt ekleme
-  // alanıyla klavye arasına girerdi. Klavye açıkken gizlenir.
   useEffect(() => {
     if (keyboardVisible) {
       setBottomOffset(0);
     }
   }, [keyboardVisible, setBottomOffset]);
+  const onLayout = (event: LayoutChangeEvent) => setBottomOffset(event.nativeEvent.layout.height);
+
+  // Klavye açıkken pencere küçülür; çubuk klavyenin üstüne çıkmasın.
   if (keyboardVisible) {
     return null;
   }
 
   return (
-    <View
+    <Box
+      bg="nav"
       testID="shell-tab-bar"
       onLayout={onLayout}
-      className="flex-row items-end bg-surface-container-lowest px-lg pt-sm"
+      accessibilityRole="tablist"
       style={{
-        paddingBottom: insets.bottom + 8,
-        boxShadow: [{ offsetX: 0, offsetY: -2, blurRadius: 16, color: `${colors.primary}14` }],
+        height: sizes.bottomNavHeight + insets.bottom,
+        paddingTop: 10,
+        paddingHorizontal: 28,
+        paddingBottom: insets.bottom,
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        boxShadow: shadow.replace('0px 6px 24px -6px', '0px -8px 30px -8px'),
       }}
     >
-      {state.routes.map((route, index) => {
-        const focused = state.index === index;
-        const { options } = descriptors[route.key];
-        const label = options.title ?? route.name;
-        const color = focused ? colors.primary : colors['on-surface-variant'];
+      <SideTab
+        icon="home"
+        label={t('shell.navHome')}
+        active={active === 'home'}
+        onPress={() => onNavigate('home')}
+      />
+      <CenterTab
+        label={t('shell.navList')}
+        accessibilityLabel={t('shell.navListLabel')}
+        active={active === 'index'}
+        onPress={() => onNavigate('index')}
+      />
+      <SideTab
+        icon="person"
+        label={t('shell.navProfile')}
+        active={active === 'profile'}
+        onPress={() => onNavigate('profile')}
+      />
+    </Box>
+  );
+}
 
-        const onPress = () => {
-          const event = navigation.emit({
-            type: 'tabPress',
-            target: route.key,
-            canPreventDefault: true,
-          });
-          if (!focused && !event.defaultPrevented) {
-            navigation.navigate(route.name, route.params);
-          }
-        };
+function SideTab({
+  icon,
+  label,
+  active,
+  onPress,
+}: {
+  icon: IconName;
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  const width = useSharedValue(active ? 64 : 40);
+  useEffect(() => {
+    width.value = withTiming(active ? 64 : 40, {
+      duration: Durations.navPill,
+      easing: Ease.easeOut,
+    });
+  }, [active, width]);
+  const pillSize = useAnimatedStyle(() => ({ width: width.value }));
+  const pillColor = useThemedStyle({ backgroundColor: active ? 'mint' : 'transparent' });
+  const color = active ? 'brand' : 'ink2';
 
-        const isCenter = route.name === centerRoute;
-        const icon = icons[route.name];
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      style={{ width: 84, height: 66, alignItems: 'center', gap: 4 }}
+    >
+      <Animated.View
+        style={[
+          { height: 36, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+          pillSize,
+          pillColor,
+        ]}
+      >
+        <Icon name={icon} size={26} color={color} />
+      </Animated.View>
+      <AppText size={15} weight="bold" tone={color}>
+        {label}
+      </AppText>
+    </Pressable>
+  );
+}
 
-        return (
-          <Pressable
-            key={route.key}
-            accessibilityRole="tab"
-            accessibilityLabel={label}
-            accessibilityState={{ selected: focused }}
-            onPress={onPress}
-            className="flex-1 items-center rounded-full py-xs active:opacity-70"
-          >
-            {isCenter ? (
-              <>
-                <View
-                  className="h-[52px] w-[52px] items-center justify-center rounded-full bg-primary"
-                  style={{
-                    marginTop: -14,
-                    boxShadow: [
-                      { offsetX: 0, offsetY: 6, blurRadius: 16, color: `${colors.primary}59` },
-                    ],
-                  }}
-                >
-                  <MaterialIcons name="shopping-basket" size={24} color={colors['on-primary']} />
-                </View>
-                <AppText variant="label-sm" style={{ color, marginTop: 2 }}>
-                  {label}
-                </AppText>
-              </>
-            ) : (
-              <>
-                <MaterialIcons
-                  name={focused ? icon?.selectedIcon : icon?.icon}
-                  size={24}
-                  color={color}
-                />
-                <AppText variant="label-sm" style={{ color, marginTop: 2 }}>
-                  {label}
-                </AppText>
-              </>
-            )}
-          </Pressable>
-        );
-      })}
+// Liste ekranındayken scale(1.06), basınca scale(.92) (300 ms spring).
+function CenterTab({
+  label,
+  accessibilityLabel,
+  active,
+  onPress,
+}: {
+  label: string;
+  accessibilityLabel: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  const scale = useSharedValue(active ? 1.06 : 1);
+  useEffect(() => {
+    scale.value = withTiming(active ? 1.06 : 1, { duration: Durations.fab, easing: Ease.spring });
+  }, [active, scale]);
+  const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+  return (
+    <View style={{ width: 100, alignItems: 'center' }}>
+      <Animated.View style={[{ marginTop: -40 }, scaleStyle]}>
+        <PressScale
+          bg="btn"
+          border="bg"
+          pressedScale={0.92}
+          accessibilityRole="tab"
+          accessibilityLabel={accessibilityLabel}
+          accessibilityState={{ selected: active }}
+          onPress={onPress}
+          style={{
+            width: sizes.fab,
+            height: sizes.fab,
+            borderRadius: sizes.fab / 2,
+            borderWidth: 5,
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: `0px 10px 22px -6px ${fixedColors.primaryShadow}`,
+          }}
+        >
+          <Icon name="basket" size={30} color={fixedColors.onBtn} strokeWidth={2} />
+        </PressScale>
+      </Animated.View>
+      <AppText
+        size={15}
+        weight="bold"
+        tone={active ? 'brand' : 'ink2'}
+        style={{ marginTop: 4 }}
+        importantForAccessibility="no"
+      >
+        {label}
+      </AppText>
     </View>
   );
 }

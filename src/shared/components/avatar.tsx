@@ -1,30 +1,70 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Image } from 'expo-image';
-import { View } from 'react-native';
 
-import { useAppTheme } from '@/shared/theme/theme-provider';
+import { memberColorsFor } from '@/shared/theme';
 
-// Flutter CircleAvatar karşılığı: Google profil fotoğrafı, yoksa
-// primary-container zemin üzerinde kişi ikonu.
-export function Avatar({ photoUrl, size }: { photoUrl: string | null; size: number }) {
-  const { colors } = useAppTheme();
+import { AppText } from './app-text';
+import { Box } from './box';
 
+// Profil fotoğrafı; yoksa üyeye özgü pastel zeminde adın baş harfi
+// (Main.dc.html "Aile Bireyleri": 20/800 harf). ring: fotoğraf çevresinde
+// kenarlık (başlıkta 2 px `card`, Profil'de 4 px `well`).
+export function Avatar({
+  uid,
+  name,
+  photoUrl,
+  size,
+  ring,
+}: {
+  uid: string;
+  name: string;
+  photoUrl: string | null;
+  size: number;
+  ring?: { width: number; color: 'card' | 'well' };
+}) {
   if (photoUrl !== null && photoUrl.length > 0) {
-    return (
+    const image = (
       <Image
         source={{ uri: photoUrl }}
         accessible={false}
         contentFit="cover"
-        style={{ width: size, height: size, borderRadius: size / 2 }}
+        style={{
+          width: ring === undefined ? size : size - ring.width * 2,
+          height: ring === undefined ? size : size - ring.width * 2,
+          borderRadius: size / 2,
+        }}
       />
     );
+    if (ring === undefined) {
+      return image;
+    }
+    return (
+      <Box
+        border={ring.color}
+        style={{ width: size, height: size, borderRadius: size / 2, borderWidth: ring.width }}
+      >
+        {image}
+      </Box>
+    );
   }
+
+  // Baş harf: birleşik karakterleri bölmemek için kod noktası bazında.
+  const initial = Array.from(name.trim())[0]?.toLocaleUpperCase('tr') ?? '?';
+  const [bg, fg] = memberColorsFor(uid);
   return (
-    <View
-      className="items-center justify-center bg-primary-container"
-      style={{ width: size, height: size, borderRadius: size / 2 }}
+    <Box
+      bg={bg}
+      accessible={false}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
     >
-      <MaterialIcons name="person" size={size / 2} color={colors['on-primary-container']} />
-    </View>
+      <AppText size={Math.round(size * 0.385)} weight="extrabold" tone={fg}>
+        {initial}
+      </AppText>
+    </Box>
   );
 }

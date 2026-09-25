@@ -1,69 +1,118 @@
 import { useEffect } from 'react';
-import { Pressable, View } from 'react-native';
-import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
+import { View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/shared/components/app-text';
-import { spacing } from '@/shared/theme';
+import { Box } from '@/shared/components/box';
+import { Icon } from '@/shared/components/icon';
+import { Ease, fixedColors } from '@/shared/theme';
 
 import { useToastStore } from './toast-store';
 
-// Kök layout'ta bir kez render edilir. Sekme çubuğu varken onun üstünde
-// çıkar (toast-store bottomOffset); yoksa alt güvenli alanın üstünde.
+// Kök layout'ta bir kez render edilir. Main.dc.html: gezinme çubuğunun 16 px
+// üstünde, ortada hap; `toastBg` zemin, bal rengi daire içinde tik.
+// Animasyon: ilk %10'da alttan (24 px, .96) girer, %86'dan sonra 12 px aşağı
+// kayarak söner.
 export function ToastHost() {
   const toast = useToastStore((s) => s.current);
   const bottomOffset = useToastStore((s) => s.bottomOffset);
   const hide = useToastStore((s) => s.hide);
   const insets = useSafeAreaInsets();
+  const p = useSharedValue(0);
+  const exit = useSharedValue(0);
 
   useEffect(() => {
     if (toast === null) {
       return;
     }
+    const enterMs = toast.durationMs * 0.1;
+    const exitMs = toast.durationMs * 0.14;
+    p.value = 0;
+    exit.value = 0;
+    p.value = withTiming(1, { duration: enterMs, easing: Ease.easeOut });
+    exit.value = withSequence(
+      withTiming(0, { duration: toast.durationMs - exitMs }),
+      withTiming(1, { duration: exitMs, easing: Ease.easeOut }),
+    );
     const timer = setTimeout(() => hide(toast.id), toast.durationMs);
     return () => clearTimeout(timer);
-  }, [toast, hide]);
+  }, [toast, hide, p, exit]);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: p.value * (1 - exit.value),
+    transform: [
+      { translateY: 24 * (1 - p.value) + 12 * exit.value },
+      { scale: 0.96 + 0.04 * p.value },
+    ],
+  }));
 
   if (toast === null) {
     return null;
   }
+  const isError = toast.kind === 'error';
 
   return (
     <View
-      pointerEvents="box-none"
+      pointerEvents="none"
       style={{
         position: 'absolute',
-        left: spacing.md,
-        right: spacing.md,
-        bottom: (bottomOffset > 0 ? bottomOffset : insets.bottom) + spacing.md,
+        left: 20,
+        right: 20,
+        alignItems: 'center',
+        bottom: (bottomOffset > 0 ? bottomOffset : insets.bottom) + 16,
       }}
     >
-      <Animated.View
-        key={toast.id}
-        entering={FadeInDown}
-        exiting={FadeOutDown}
-        accessibilityLiveRegion="polite"
-        accessibilityRole="alert"
-        className="min-h-touch flex-row items-center gap-sm rounded-sm bg-inverse-surface py-sm pl-md pr-sm"
-      >
-        <AppText variant="body-md" tone="on-inverse-surface" className="flex-1">
-          {toast.message}
-        </AppText>
-        {toast.action !== undefined && (
-          <Pressable
-            accessibilityRole="button"
-            hitSlop={spacing.xs}
-            onPress={() => {
-              toast.action?.onPress();
-              hide(toast.id);
+      <Animated.View style={style}>
+        <Box
+          bg={isError ? 'dangerBg' : 'toastBg'}
+          accessible
+          accessibilityRole={isError ? 'alert' : undefined}
+          accessibilityLiveRegion="polite"
+          style={{
+            maxWidth: 350,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            paddingVertical: 14,
+            paddingLeft: 14,
+            paddingRight: 20,
+            borderRadius: 999,
+            boxShadow: '0px 12px 30px -8px rgba(0,0,0,0.35)',
+          }}
+        >
+          <View
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 14,
+              backgroundColor: isError ? fixedColors.badgeUnread : fixedColors.accentHoney,
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
-            className="min-h-touch justify-center rounded-full px-sm active:opacity-70"
           >
-            <AppText variant="label-lg" tone="inverse-primary">
-              {toast.action.label}
-            </AppText>
-          </Pressable>
-        )}
+            <Icon
+              name={isError ? 'warning' : 'check'}
+              size={15}
+              strokeWidth={3}
+              color={isError ? fixedColors.onBtn : fixedColors.toastCheck}
+            />
+          </View>
+          <AppText
+            size={16}
+            weight="bold"
+            tone={isError ? 'dangerFg' : 'toastFg'}
+            numberOfLines={isError ? 3 : 1}
+            style={{ flexShrink: 1 }}
+          >
+            {toast.message}
+          </AppText>
+        </Box>
       </Animated.View>
     </View>
   );

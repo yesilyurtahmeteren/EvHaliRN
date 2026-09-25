@@ -1,15 +1,13 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 
-import '@/shared/i18n';
 import { signInWithGoogle } from '@/features/auth/api';
 import { SignInScreen } from '@/features/auth/components/sign-in-screen';
 import { hideToast, useToastStore } from '@/shared/components/toast/toast-store';
+import { renderWithTheme, sleep } from '@/test-utils/render';
 
-jest.mock('@/features/auth/api', () => ({
-  signInWithGoogle: jest.fn(),
-  signOut: jest.fn(),
+jest.mock('@/features/auth/api', () => ({ signInWithGoogle: jest.fn(), signOut: jest.fn() }));
+jest.mock('@react-native-firebase/auth', () => ({
+  getAuth: () => ({ currentUser: { displayName: 'Zeynep Yılmaz' } }),
 }));
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(() => Promise.resolve()),
@@ -18,73 +16,53 @@ jest.mock('expo-haptics', () => ({
 
 const mockSignIn = jest.mocked(signInWithGoogle);
 
-const metrics = {
-  frame: { x: 0, y: 0, width: 390, height: 844 },
-  insets: { top: 0, left: 0, right: 0, bottom: 0 },
-};
-
-function renderScreen() {
-  const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
-  return render(
-    <SafeAreaProvider initialMetrics={metrics}>
-      <QueryClientProvider client={client}>
-        <SignInScreen />
-      </QueryClientProvider>
-    </SafeAreaProvider>,
-  );
-}
-
 afterEach(async () => {
-  // TanStack'in setTimeout(0) ile geciktirdiği son durum bildirimi act içinde
-  // boşaltılsın ("not wrapped in act" uyarısı olmasın).
-  await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
+  await act(async () => sleep(0));
   await act(async () => hideToast());
   jest.clearAllMocks();
 });
 
 describe('SignInScreen', () => {
-  it('Figma giriş ekranı metinlerini gösterir', async () => {
-    await renderScreen();
-
+  it('tasarımdaki metinleri gösterir', async () => {
+    await renderWithTheme(<SignInScreen />);
     expect(screen.getByRole('header', { name: 'Ev Hali' })).toBeOnTheScreen();
-    expect(screen.getByText('Evinizin ortak alışveriş listesi ve aile bereketi')).toBeOnTheScreen();
-    expect(screen.getByText('Ailece güvenli ve senkronize alışveriş deneyimi')).toBeOnTheScreen();
+    expect(
+      screen.getByText('Evinizin ortak alışveriş listesi. Kolay, sade, herkes için.'),
+    ).toBeOnTheScreen();
+    expect(screen.getByText('Bilgileriniz güvende')).toBeOnTheScreen();
   });
 
-  it('giriş sürerken düğme yerine ilerleme çubuğu gösterir', async () => {
-    let finish: (value: 'success') => void = () => undefined;
-    mockSignIn.mockReturnValue(new Promise((resolve) => (finish = resolve)));
-    await renderScreen();
+  it('girişte "Giriş yapılıyor…" gösterir, başarıda ilk adla karşılar', async () => {
+    let resolve: (value: 'success') => void = () => undefined;
+    mockSignIn.mockReturnValue(new Promise((r) => (resolve = r)));
+    await renderWithTheme(<SignInScreen />);
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Google ile Devam Et' }));
-    expect(mockSignIn).toHaveBeenCalledTimes(1);
-    // TanStack durum değişimini bir sonraki tick'te bildiriyor.
-    await waitFor(() => expect(screen.getByRole('progressbar')).toBeOnTheScreen());
-    expect(screen.queryByRole('button')).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Google ile Giriş Yap' }));
+    const busy = await screen.findByRole('button', { name: 'Giriş yapılıyor…' });
+    expect(busy).toBeDisabled();
 
-    await act(async () => finish('success'));
-    await waitFor(() => expect(screen.getByRole('button')).toBeOnTheScreen());
-  });
-
-  it('giriş başarısızsa "Giriş yapılamadı" mesajı ve düğme geri gelir', async () => {
-    mockSignIn.mockRejectedValue(new Error('DEVELOPER_ERROR'));
-    await renderScreen();
-
-    await fireEvent.press(screen.getByRole('button', { name: 'Google ile Devam Et' }));
-
+    await act(async () => resolve('success'));
     await waitFor(() =>
-      expect(useToastStore.getState().current?.message).toBe('Giriş yapılamadı, tekrar deneyin.'),
+      expect(useToastStore.getState().current?.message).toBe('Hoş geldiniz, Zeynep'),
     );
-    expect(screen.getByRole('button', { name: 'Google ile Devam Et' })).toBeOnTheScreen();
   });
 
-  it('kullanıcı hesap seçiciyi kapatırsa hata göstermez', async () => {
+  it('hesap seçici kapatılırsa hata ya da karşılama göstermez', async () => {
     mockSignIn.mockResolvedValue('cancelled');
-    await renderScreen();
-
-    await fireEvent.press(screen.getByRole('button', { name: 'Google ile Devam Et' }));
-
-    await waitFor(() => expect(screen.getByRole('button')).toBeOnTheScreen());
+    await renderWithTheme(<SignInScreen />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Google ile Giriş Yap' }));
+    await act(async () => sleep(0));
     expect(useToastStore.getState().current).toBeNull();
+  });
+
+  it('hata olursa anlaşılır mesaj gösterir', async () => {
+    mockSignIn.mockRejectedValue(new Error('network'));
+    await renderWithTheme(<SignInScreen />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Google ile Giriş Yap' }));
+    await waitFor(() =>
+      expect(useToastStore.getState().current?.message).toBe(
+        'Giriş yapılamadı, lütfen tekrar deneyin.',
+      ),
+    );
   });
 });

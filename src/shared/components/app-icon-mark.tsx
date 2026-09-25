@@ -2,16 +2,16 @@ import { Image } from 'expo-image';
 
 import logo from '@/assets/images/logo.png';
 
-// Flutter widgets/app_icon_mark.dart karşılığı: gerçek logo ("EvHali Logo 3"),
-// giriş ekranında ve üst çubukta. Köşe yuvarlaklığı boyutla orantılı (%22).
-export function AppIconMark({ size = 40 }: { size?: number }) {
+// Tasarım handoff'undaki logo (assets/logo-512.png, köşeleri yuvarlatılmış).
+// radius: başlıkta 38/11, girişte 156/42, boş durumda 76/22.
+export function AppIconMark({ size = 38, radius }: { size?: number; radius?: number }) {
   return (
     <Image
       source={logo}
       accessibilityIgnoresInvertColors
       accessible={false}
       contentFit="cover"
-      style={{ width: size, height: size, borderRadius: size * 0.22 }}
+      style={{ width: size, height: size, borderRadius: radius ?? size * 0.29 }}
     />
   );
 }

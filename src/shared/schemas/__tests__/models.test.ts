@@ -1,5 +1,10 @@
 import {
   appUserSchema,
+  homeEventSchema,
+  parseCategory,
+  roleOf,
+  wantsAddedPush,
+  wantsBoughtPush,
   catalogItemSchema,
   homeSchema,
   inviteSchema,
@@ -35,6 +40,15 @@ describe('appUserSchema', () => {
     });
   });
 
+  it('yeni iki bildirim tercihi yoksa eski tek anahtar geçerli', () => {
+    const old = appUserSchema.parse({ uid: 'u1', notificationsEnabled: false });
+    expect(wantsAddedPush(old)).toBe(false);
+    expect(wantsBoughtPush(old)).toBe(false);
+    const split = appUserSchema.parse({ uid: 'u1', notifyAdded: true, notifyBought: false });
+    expect(wantsAddedPush(split)).toBe(true);
+    expect(wantsBoughtPush(split)).toBe(false);
+  });
+
   it('ilk girişte oluşturulan minimal dokümanda Flutter varsayılanlarını kullanır', () => {
     const user = appUserSchema.parse({ uid: 'u1', displayName: '', photoUrl: null, homeId: null });
     expect(user.notificationsEnabled).toBe(true);
@@ -65,7 +79,23 @@ describe('homeSchema', () => {
       name: 'Yeşilyurt Evi',
       memberIds: ['u1', 'u2'],
       inviteCode: 'AB7K9TQX',
+      roles: null,
     });
+  });
+
+  it('roller: haritada olmayan üye "member"; harita yoksa kurucu yönetici', () => {
+    const legacy = homeSchema.parse({ id: 'h', memberIds: ['u1', 'u2'] });
+    expect(roleOf(legacy, 'u1')).toBe('admin');
+    expect(roleOf(legacy, 'u2')).toBe('member');
+    const withRoles = homeSchema.parse({
+      id: 'h',
+      memberIds: ['u1', 'u2', 'u3'],
+      roles: { u2: 'admin', u3: 'guest', u9: 'king' },
+    });
+    expect(roleOf(withRoles, 'u1')).toBe('member');
+    expect(roleOf(withRoles, 'u2')).toBe('admin');
+    expect(roleOf(withRoles, 'u3')).toBe('guest');
+    expect(withRoles.roles?.u9).toBe('member');
   });
 
   it('Faz 2/3 döneminden kalan davet kodsuz evde boş kod döner', () => {
@@ -145,9 +175,19 @@ describe('catalogItemSchema', () => {
       name: 'Süt',
       count: 14,
       lastUsedAt: ts('2026-09-20T08:00:00Z'),
-      category: 'dairy_breakfast',
+      category: 'food',
     });
-    expect(entry).toEqual({ id: 'süt', name: 'Süt', count: 14, category: 'dairy_breakfast' });
+    expect(entry).toEqual({ id: 'süt', name: 'Süt', count: 14, category: 'food' });
+  });
+
+  it("Flutter sürümünün eski 10'lu kategorilerini 4'lüye çevirir", () => {
+    const parse = (category: string) =>
+      catalogItemSchema.parse({ id: 'a', name: 'A', count: 1, category }).category;
+    expect(parse('dairy_breakfast')).toBe('food');
+    expect(parse('bakery')).toBe('food');
+    expect(parse('cleaning')).toBe('clean');
+    expect(parse('personal_care')).toBe('care');
+    expect(parse('other')).toBe('other');
   });
 
   it('kategorisiz ya da listede olmayan kategoriyi null yapar', () => {
@@ -173,21 +213,29 @@ describe('inviteSchema', () => {
   });
 });
 
+describe('homeEventSchema', () => {
+  it('bildirim kaydını okur, bilinmeyen türü reddeder', () => {
+    const event = homeEventSchema.parse({
+      id: 'e1',
+      type: 'bought',
+      actorId: 'u1',
+      count: 2,
+      itemNames: ['Süt', 'Ekmek'],
+      createdAt: ts('2026-09-25T10:00:00Z'),
+      readBy: ['u1'],
+    });
+    expect(event.type).toBe('bought');
+    expect(event.readBy).toEqual(['u1']);
+    expect(homeEventSchema.safeParse({ id: 'e2', type: 'location' }).success).toBe(false);
+  });
+});
+
 describe('enum listeleri', () => {
-  it('firestore.rules ile aynı kategori ve birim listeleri', () => {
-    expect(itemCategories).toEqual([
-      'fruit_vegetable',
-      'dairy_breakfast',
-      'meat_deli',
-      'bakery',
-      'staple',
-      'beverage',
-      'snack',
-      'cleaning',
-      'personal_care',
-      'other',
-    ]);
-    expect(itemUnits).toEqual(['adet', 'kg', 'paket', 'litre', 'demet']);
+  it('firestore.rules ile aynı bölüm ve birim listeleri', () => {
+    expect(itemCategories).toEqual(['food', 'clean', 'care', 'other']);
+    expect(itemUnits).toEqual(['adet', 'kg', 'g', 'litre', 'paket', 'kutu']);
     expect(itemCategorySchema.safeParse('frozen').success).toBe(false);
+    expect(parseCategory('snack')).toBe('food');
+    expect(parseCategory(42)).toBeNull();
   });
 });

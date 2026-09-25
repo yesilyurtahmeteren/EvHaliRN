@@ -77,7 +77,7 @@ describe('useFeedbackMutation', () => {
     });
     expect(ok).toBe(false);
     expect(Haptics.impactAsync).toHaveBeenCalledWith('medium');
-    expect(toastMessage()).toBe('Bu işlem için yetkin yok görünüyor, tekrar giriş yapmayı dene.');
+    expect(toastMessage()).toBe('Bu işlem için yetkiniz yok görünüyor.');
   });
 
   it('özel hata mesajı genel mesajın yerine geçer', async () => {

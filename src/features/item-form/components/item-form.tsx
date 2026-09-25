@@ -1,419 +1,518 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Controller, useForm } from 'react-hook-form';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, Switch, TextInput, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, ScrollView, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
-import type { CategoriesByName } from '@/features/shopping-list/hooks/use-list-data';
 import { AppText } from '@/shared/components/app-text';
+import { Box } from '@/shared/components/box';
 import { Button } from '@/shared/components/button';
-import { Chip } from '@/shared/components/chip';
-import { LoadingBar } from '@/shared/components/loading-bar';
-import { showToast } from '@/shared/components/toast/toast-store';
-import { joinNames } from '@/shared/lib/join-names';
-import { normalizeName } from '@/shared/lib/normalize-name';
-import { itemCategories, itemUnits, type CatalogItem, type ItemCategory } from '@/shared/schemas';
-import { fontFamilies, typeScale } from '@/shared/theme';
-import { useTextScaleStore } from '@/shared/theme/text-scale-store';
-import { useAppTheme } from '@/shared/theme/theme-provider';
+import { Icon } from '@/shared/components/icon';
+import { Pop } from '@/shared/components/motion';
+import { PressScale } from '@/shared/components/press-scale';
+import { TextField } from '@/shared/components/text-field';
+import { Toggle } from '@/shared/components/toggle';
+import { categoryLook } from '@/shared/lib/category-look';
+import { itemCategories, itemUnits, type ItemCategory, type ItemUnit } from '@/shared/schemas';
+import { Durations, Ease, fixedColors } from '@/shared/theme';
 
+import { useVoiceInput } from '../hooks/use-voice-input';
 import {
   itemFormSchema,
   itemNameMaxLength,
-  noteMaxLength,
   quantityMax,
   quantityMin,
-  type ItemFormInput,
   type ItemFormValues,
 } from '../schemas';
 
-// Kategori çiplerinin süsü (Flutter Strings.categoryEmojis). Ürün adlarına
-// emoji eşlenmez: katalog adları serbest metin, güvenilir eşleme yok.
-const categoryEmojis: Record<ItemCategory, string> = {
-  fruit_vegetable: '🥕',
-  dairy_breakfast: '🥛',
-  meat_deli: '🥩',
-  bakery: '🍞',
-  staple: '🌾',
-  beverage: '☕',
-  snack: '🍪',
-  cleaning: '🧼',
-  personal_care: '🧴',
-  other: '📦',
-};
+// Main.dc.html hızlı seçim hapları: ad + bölüm.
+const quickPicks: readonly {
+  key: 'bread' | 'milk' | 'eggs' | 'napkin' | 'detergent' | 'shampoo';
+  category: ItemCategory;
+}[] = [
+  { key: 'bread', category: 'food' },
+  { key: 'milk', category: 'food' },
+  { key: 'eggs', category: 'food' },
+  { key: 'napkin', category: 'clean' },
+  { key: 'detergent', category: 'clean' },
+  { key: 'shampoo', category: 'care' },
+];
 
 export type ItemFormProps = {
   mode: 'add' | 'edit';
-  defaultValues: ItemFormInput;
-  homeName: string | null;
-  // Bu cihazın sahibi dışındaki üyeler ("X ile anında senkronize olur").
-  syncTargetNames: readonly string[];
-  suggestions: readonly CatalogItem[];
-  categoriesByName: CategoriesByName;
-  saving: boolean;
+  initialValues: ItemFormValues;
+  saving?: boolean;
   onSubmit: (values: ItemFormValues) => void;
   onClose: () => void;
+  onDelete?: () => void;
 };
 
-// Flutter ItemFormSheet ("İhtiyaç Ekle" alt sayfası): listenin üzerine açılan
-// sayfa; hızlı ekleme alanının yerine geçmez, yalnızca "Detaylı ekle" ya da
-// satır gövdesinden açılır. Boş adla kaydet Flutter'daki gibi bir şey yapmaz.
+// "İhtiyaç Ekle" alt sayfasının içeriği (HANDOFF §2.3). Ad boşsa alan
+// 450 ms sallanır ve hiçbir şey eklenmez.
 export function ItemForm({
   mode,
-  defaultValues,
-  homeName,
-  syncTargetNames,
-  suggestions,
-  categoriesByName,
-  saving,
+  initialValues,
+  saving = false,
   onSubmit,
   onClose,
+  onDelete,
 }: ItemFormProps) {
   const { t } = useTranslation();
-  const { colors } = useAppTheme();
-  const insets = useSafeAreaInsets();
-  const multiplier = useTextScaleStore((s) => s.multiplier);
-  const form = useForm<ItemFormInput, unknown, ItemFormValues>({
-    resolver: zodResolver(itemFormSchema),
-    defaultValues,
-  });
-  const isEditing = mode === 'edit';
+  const [values, setValues] = useState<ItemFormValues>(initialValues);
+  const [unitsOpen, setUnitsOpen] = useState(false);
+  const [shakeKey, setShakeKey] = useState(0);
+  const set = (patch: Partial<ItemFormValues>) => setValues((v) => ({ ...v, ...patch }));
 
-  const submit = form.handleSubmit(onSubmit);
-  const applySuggestion = (name: string) => {
-    form.setValue('name', name);
-    form.setValue('category', categoriesByName.get(normalizeName(name)) ?? null);
-  };
+  const voice = useVoiceInput((spoken) =>
+    set({
+      name: spoken.name.slice(0, itemNameMaxLength),
+      ...(spoken.quantity === undefined ? {} : { quantity: spoken.quantity }),
+      ...(spoken.unit === undefined ? {} : { unit: spoken.unit }),
+    }),
+  );
 
-  const subtitle = isEditing
-    ? t('itemForm.editSubtitle')
-    : homeName !== null
-      ? t('itemForm.addSubtitle', { home: homeName })
-      : undefined;
-  const [titleSize, titleLine] = typeScale['title-md'];
-  const inputStyle = {
-    color: colors['on-surface'],
-    fontFamily: fontFamilies.regular,
-    fontSize: titleSize * multiplier,
-    lineHeight: titleLine * multiplier,
+  const submit = () => {
+    const parsed = itemFormSchema.safeParse(values);
+    if (!parsed.success) {
+      setShakeKey((k) => k + 1);
+      return;
+    }
+    onSubmit(parsed.data);
   };
 
   return (
-    <View
-      className="max-h-[92%] rounded-t-xl bg-surface-container-low"
-      style={{ paddingBottom: insets.bottom }}
-    >
-      {/* Tutamak + başlık + kapat */}
-      <View className="px-lg pb-sm pt-sm">
-        <View className="mb-md h-[6px] w-[48px] self-center rounded-sm bg-outline-variant" />
-        <View className="flex-row items-start gap-md">
-          <View className="flex-1">
-            <AppText variant="headline-md" accessibilityRole="header">
-              {isEditing ? t('itemForm.editTitle') : t('itemForm.addTitle')}
-            </AppText>
-            {subtitle !== undefined && (
-              <AppText variant="body-sm" tone="on-surface-variant" className="mt-[2px]">
-                {subtitle}
-              </AppText>
-            )}
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('common.cancel')}
-            onPress={onClose}
-            className="h-touch w-touch items-center justify-center rounded-full bg-secondary-container active:opacity-80"
-          >
-            <MaterialIcons name="close" size={22} color={colors['on-secondary-container']} />
-          </Pressable>
-        </View>
+    <View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <AppText size={26} weight="extrabold" tracking={-0.02} accessibilityRole="header">
+          {mode === 'add' ? t('itemForm.addTitle') : t('itemForm.editTitle')}
+        </AppText>
+        <PressScale
+          bg="well2"
+          accessibilityRole="button"
+          accessibilityLabel={t('common.close')}
+          onPress={onClose}
+          style={{
+            height: 48,
+            paddingLeft: 10,
+            paddingRight: 14,
+            borderRadius: 999,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          <Icon name="close" size={20} strokeWidth={2.4} />
+          <AppText size={16} weight="bold">
+            {t('common.close')}
+          </AppText>
+        </PressScale>
       </View>
 
       <ScrollView
         keyboardShouldPersistTaps="handled"
-        className="shrink"
-        contentContainerClassName="gap-lg px-lg pb-lg"
+        showsVerticalScrollIndicator={false}
+        style={{ flexGrow: 0 }}
+        // Birim listesi açıkken içeriğin altında taşmasın diye yer açılır.
+        contentContainerStyle={{ paddingBottom: unitsOpen ? 90 : 2 }}
       >
-        {/* Ad + sesli giriş yer tutucusu */}
-        <View className="min-h-[56px] flex-row items-center rounded-md border border-outline-variant bg-surface-container-lowest pl-md">
-          <Controller
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <TextInput
-                value={field.value}
-                onChangeText={field.onChange}
-                onBlur={field.onBlur}
-                autoFocus={!isEditing}
-                maxLength={itemNameMaxLength}
-                autoCapitalize="sentences"
-                placeholder={t('itemForm.nameHint')}
-                accessibilityLabel={t('itemForm.nameLabel')}
-                placeholderTextColor={colors['on-surface-variant']}
-                cursorColor={colors.primary}
-                selectionColor={colors.primary}
-                className="flex-1 py-sm"
-                style={inputStyle}
-              />
-            )}
+        <AppText size={16} weight="bold" style={{ marginTop: 14 }} nativeID="item-name-label">
+          {t('itemForm.nameLabel')}
+        </AppText>
+        <View style={{ marginTop: 8 }}>
+          <TextField
+            value={values.name}
+            onChangeText={(name) => set({ name })}
+            placeholder={t('itemForm.namePlaceholder')}
+            accessibilityLabel={t('itemForm.nameLabel')}
+            accessibilityLabelledBy="item-name-label"
+            maxLength={itemNameMaxLength}
+            autoCapitalize="sentences"
+            autoFocus={mode === 'add'}
+            returnKeyType="done"
+            submitBehavior="submit"
+            onSubmitEditing={submit}
+            shakeKey={shakeKey}
+            trailing={
+              <PressScale
+                bg={voice.listening ? 'btn' : 'mint'}
+                accessibilityRole="button"
+                accessibilityLabel={voice.listening ? t('itemForm.voiceStop') : t('itemForm.voice')}
+                accessibilityState={{ busy: voice.listening }}
+                onPress={() => void voice.toggle()}
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Icon
+                  name="mic"
+                  size={24}
+                  strokeWidth={2}
+                  color={voice.listening ? fixedColors.onBtn : 'mintFg'}
+                />
+              </PressScale>
+            }
           />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('itemForm.voiceInput')}
-            onPress={() => showToast(t('itemForm.voiceInputComingSoon'))}
-            className="h-touch w-touch items-center justify-center rounded-full"
-          >
-            <MaterialIcons name="mic-none" size={24} color={colors['on-surface-variant']} />
-          </Pressable>
         </View>
-
-        <QuantityUnitCard control={form.control} />
-
-        {suggestions.length > 0 && (
-          <View className="gap-sm">
-            <View className="flex-row items-center gap-xs">
-              <MaterialIcons name="star" size={16} color={colors.secondary} />
-              <AppText variant="label-lg">{t('itemForm.quickSuggestionsTitle')}</AppText>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyboardShouldPersistTaps="always"
-              contentContainerClassName="gap-sm"
-            >
-              {suggestions.map((entry) => (
-                <Pressable
-                  key={entry.id}
-                  accessibilityRole="button"
-                  onPress={() => applySuggestion(entry.name)}
-                  className="min-h-[36px] justify-center rounded-full bg-surface-container-lowest px-md active:opacity-70"
-                >
-                  <AppText variant="label-lg">{entry.name}</AppText>
-                </Pressable>
-              ))}
-            </ScrollView>
-          </View>
+        {voice.listening && (
+          <AppText
+            size={15}
+            weight="semibold"
+            tone="brand"
+            accessibilityLiveRegion="polite"
+            style={{ marginTop: 6 }}
+          >
+            {t('itemForm.voiceListening')}
+          </AppText>
         )}
 
-        <View className="gap-sm">
-          <AppText variant="label-lg">{t('itemForm.categorySectionTitle')}</AppText>
-          <Controller
-            control={form.control}
-            name="category"
-            render={({ field }) => (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                accessibilityRole="radiogroup"
-                keyboardShouldPersistTaps="always"
-                contentContainerClassName="gap-sm"
+        {mode === 'add' && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyboardShouldPersistTaps="always"
+            style={{ marginTop: 10, marginHorizontal: -20 }}
+            contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}
+          >
+            {quickPicks.map((pick) => {
+              const label = t(`itemForm.quickPicks.${pick.key}`);
+              return (
+                <PressScale
+                  key={pick.key}
+                  bg="card"
+                  border="line"
+                  accessibilityRole="button"
+                  accessibilityLabel={label}
+                  onPress={() => set({ name: label, category: pick.category })}
+                  style={{
+                    height: 44,
+                    paddingHorizontal: 16,
+                    borderRadius: 999,
+                    borderWidth: 1.5,
+                    justifyContent: 'center',
+                  }}
+                >
+                  <AppText size={16} weight="semibold">
+                    {label}
+                  </AppText>
+                </PressScale>
+              );
+            })}
+          </ScrollView>
+        )}
+
+        <AppText size={16} weight="bold" style={{ marginTop: 16 }}>
+          {t('itemForm.amountLabel')}
+        </AppText>
+        <View
+          style={{
+            marginTop: 8,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            zIndex: 10,
+          }}
+        >
+          <Stepper value={values.quantity} onChange={(quantity) => set({ quantity })} />
+          <UnitPicker
+            value={values.unit}
+            open={unitsOpen}
+            onToggle={() => setUnitsOpen((o) => !o)}
+            onPick={(unit) => {
+              set({ unit });
+              setUnitsOpen(false);
+            }}
+          />
+        </View>
+
+        <AppText size={16} weight="bold" style={{ marginTop: 16 }}>
+          {t('itemForm.categoryLabel')}
+        </AppText>
+        <View
+          accessibilityRole="radiogroup"
+          accessibilityLabel={t('itemForm.categoryLabel')}
+          style={{ marginTop: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}
+        >
+          {itemCategories.map((category) => {
+            const on = values.category === category;
+            const look = categoryLook[category];
+            return (
+              <PressScale
+                key={category}
+                bg={on ? 'mint' : 'card'}
+                border={on ? 'brand' : 'line'}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: on }}
+                accessibilityLabel={t(`categories.${category}`)}
+                onPress={() => set({ category })}
+                style={{
+                  width: '48.8%',
+                  flexGrow: 1,
+                  height: 58,
+                  paddingHorizontal: 12,
+                  borderRadius: 16,
+                  borderWidth: 2,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 10,
+                }}
               >
-                <Chip
-                  label={t('itemForm.categoryNone')}
-                  selected={field.value === null}
-                  onPress={() => field.onChange(null)}
-                />
-                {itemCategories.map((category) => (
-                  <Chip
-                    key={category}
-                    label={`${categoryEmojis[category]} ${t(`categories.${category}`)}`}
-                    accessibilityLabel={t(`categories.${category}`)}
-                    selected={field.value === category}
-                    onPress={() => field.onChange(category)}
-                  />
-                ))}
-              </ScrollView>
-            )}
-          />
-        </View>
-
-        <View className="gap-xs">
-          <AppText variant="label-lg" tone="on-surface-variant">
-            {t('itemForm.noteLabel')}
-          </AppText>
-          <Controller
-            control={form.control}
-            name="note"
-            render={({ field }) => (
-              <TextInput
-                value={field.value}
-                onChangeText={field.onChange}
-                onBlur={field.onBlur}
-                maxLength={noteMaxLength}
-                returnKeyType="done"
-                accessibilityLabel={t('itemForm.noteLabel')}
-                cursorColor={colors.primary}
-                selectionColor={colors.primary}
-                className="min-h-[56px] rounded-md border border-outline-variant bg-surface-container-lowest px-md"
-                style={inputStyle}
-              />
-            )}
-          />
-        </View>
-
-        <Controller
-          control={form.control}
-          name="urgent"
-          render={({ field }) => (
-            <Pressable
-              accessibilityRole="switch"
-              accessibilityLabel={t('itemForm.urgentLabel')}
-              accessibilityHint={t('itemForm.urgentSubtitle')}
-              accessibilityState={{ checked: field.value }}
-              onPress={() => field.onChange(!field.value)}
-              className="min-h-[64px] flex-row items-center gap-md rounded-md border border-outline-variant bg-surface-container-lowest px-md"
-            >
-              <View className="h-[36px] w-[36px] items-center justify-center rounded-sm bg-secondary-container">
-                <MaterialIcons
-                  name="local-fire-department"
-                  size={20}
-                  color={colors['on-secondary-container']}
-                />
-              </View>
-              <View className="flex-1 py-sm">
-                <AppText variant="body-lg">{t('itemForm.urgentLabel')}</AppText>
-                <AppText variant="body-md" tone="on-surface-variant">
-                  {t('itemForm.urgentSubtitle')}
+                <Box
+                  bg={look.bg}
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Icon name={look.icon} size={20} strokeWidth={2} color={look.fg} />
+                </Box>
+                <AppText size={17} weight="bold" numberOfLines={1} style={{ flex: 1 }}>
+                  {t(`categories.${category}`)}
                 </AppText>
-              </View>
-              <Switch
-                value={field.value}
-                onValueChange={field.onChange}
-                importantForAccessibility="no-hide-descendants"
-                trackColor={{ false: colors['surface-container-highest'], true: colors.secondary }}
-                thumbColor={field.value ? colors['on-secondary'] : colors.outline}
-              />
-            </Pressable>
-          )}
-        />
+              </PressScale>
+            );
+          })}
+        </View>
+
+        <Box
+          bg="card"
+          border="line"
+          style={{
+            marginTop: 12,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 14,
+            padding: 12,
+            borderRadius: 20,
+            borderWidth: 1,
+          }}
+        >
+          <Box
+            bg="peach"
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 14,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Icon name="flame" size={20} color={fixedColors.urgentOn} />
+          </Box>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <AppText size={16} weight="bold">
+              {t('itemForm.urgentTitle')}
+            </AppText>
+            <AppText size={14} tone="ink2">
+              {t('itemForm.urgentSubtitle')}
+            </AppText>
+          </View>
+          <Toggle
+            small
+            value={values.urgent}
+            onValueChange={(urgent) => set({ urgent })}
+            onColor={fixedColors.urgentOn}
+            accessibilityLabel={t('itemForm.urgentSwitch')}
+          />
+        </Box>
       </ScrollView>
 
-      {/* Alt sabit: Listeye Ekle / Kaydet + senkron ibaresi */}
-      <View className="gap-sm border-t border-outline-variant px-lg py-md">
-        {saving ? (
-          <View className="min-h-[52px] justify-center">
-            <LoadingBar />
-          </View>
-        ) : (
-          <Button
-            label={isEditing ? t('itemForm.saveButton') : t('itemForm.addButton')}
-            icon={isEditing ? 'check' : 'add'}
-            fullWidth
-            onPress={() => void submit()}
-          />
-        )}
-        {!isEditing && syncTargetNames.length > 0 && (
-          <AppText variant="body-sm" tone="on-surface-variant" className="text-center">
-            {t('itemForm.syncCaption', { names: joinNames(syncTargetNames, t('common.and')) })}
-          </AppText>
-        )}
-      </View>
-    </View>
-  );
-}
-
-// "Miktar & Birim": −/+ sayaç (1-99) ve birim seçimi. Flutter'da birim bir
-// açılır menüydü; burada aynı kartta çipler (RN'de yerleşik açılır menü yok).
-function QuantityUnitCard({
-  control,
-}: {
-  control: ReturnType<typeof useForm<ItemFormInput, unknown, ItemFormValues>>['control'];
-}) {
-  const { t } = useTranslation();
-
-  return (
-    <View className="gap-sm rounded-md border border-outline-variant bg-surface-container-lowest px-md py-sm">
-      <View className="flex-row items-center gap-sm">
-        <AppText variant="label-md" numberOfLines={1} className="flex-1">
-          {t('itemForm.quantityUnitLabel')}
-        </AppText>
-        <Controller
-          control={control}
-          name="quantity"
-          render={({ field }) => (
-            <View
-              accessible
-              accessibilityRole="adjustable"
-              accessibilityLabel={t('itemForm.quantityLabel')}
-              accessibilityValue={{ min: quantityMin, max: quantityMax, now: field.value }}
-              accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
-              onAccessibilityAction={(event) => {
-                if (event.nativeEvent.actionName === 'increment' && field.value < quantityMax) {
-                  field.onChange(field.value + 1);
-                } else if (
-                  event.nativeEvent.actionName === 'decrement' &&
-                  field.value > quantityMin
-                ) {
-                  field.onChange(field.value - 1);
-                }
-              }}
-              className="flex-row items-center rounded-sm bg-surface-container-high p-[2px]"
-            >
-              <StepperButton
-                icon="remove"
-                label={t('itemForm.decrease')}
-                disabled={field.value <= quantityMin}
-                onPress={() => field.onChange(field.value - 1)}
-              />
-              <AppText variant="title-md" className="w-[32px] text-center">
-                {String(field.value)}
-              </AppText>
-              <StepperButton
-                icon="add"
-                label={t('itemForm.increase')}
-                disabled={field.value >= quantityMax}
-                onPress={() => field.onChange(field.value + 1)}
-              />
-            </View>
-          )}
+      <View style={{ marginTop: 16 }}>
+        <Button
+          label={mode === 'add' ? t('itemForm.addButton') : t('itemForm.saveButton')}
+          icon={mode === 'add' ? 'plus' : 'check'}
+          iconStrokeWidth={2.8}
+          height={62}
+          weight="extrabold"
+          loading={saving}
+          onPress={submit}
         />
-      </View>
-      <Controller
-        control={control}
-        name="unit"
-        render={({ field }) => (
-          <View accessibilityRole="radiogroup" className="flex-row flex-wrap gap-sm">
-            {itemUnits.map((unit) => (
-              <Chip
-                key={unit}
-                label={t(`units.${unit}`)}
-                selected={field.value === unit}
-                onPress={() => field.onChange(unit)}
-                className="min-h-[36px]"
-              />
-            ))}
+        {onDelete !== undefined && (
+          <View style={{ marginTop: 10 }}>
+            <Button
+              label={t('itemForm.deleteButton')}
+              variant="danger"
+              icon="close"
+              height={52}
+              radius={16}
+              fontSize={17}
+              disabled={saving}
+              onPress={onDelete}
+            />
           </View>
         )}
-      />
+      </View>
     </View>
   );
 }
 
-function StepperButton({
-  icon,
-  label,
-  disabled,
-  onPress,
-}: {
-  icon: 'add' | 'remove';
-  label: string;
-  disabled: boolean;
-  onPress: () => void;
-}) {
-  const { colors } = useAppTheme();
-  return (
-    <Pressable
+// − / sayı / +; düğmeler 52 px, sayı 22/800, 1-99. Sayı ekran okuyucuya
+// değiştikçe okunur (aria-live).
+function Stepper({ value, onChange }: { value: number; onChange: (value: number) => void }) {
+  const { t } = useTranslation();
+  const step = (delta: number) =>
+    onChange(Math.min(quantityMax, Math.max(quantityMin, value + delta)));
+  const button = (icon: 'minus' | 'plus', label: string, delta: number, disabled: boolean) => (
+    <PressScale
+      bg="card"
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled }}
       disabled={disabled}
-      onPress={onPress}
-      hitSlop={6}
-      className={`h-[36px] w-[36px] items-center justify-center rounded-xs bg-surface-container-lowest ${
-        disabled ? 'opacity-40' : 'active:opacity-70'
-      }`}
+      onPress={() => step(delta)}
+      style={{
+        width: 52,
+        height: 52,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: disabled ? 0.5 : 1,
+      }}
     >
-      <MaterialIcons name={icon} size={16} color={colors.primary} />
-    </Pressable>
+      <Icon name={icon} size={22} strokeWidth={2.6} />
+    </PressScale>
+  );
+  return (
+    <Box
+      bg="well2"
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, padding: 4, borderRadius: 18 }}
+    >
+      {button('minus', t('itemForm.decrease'), -1, value <= quantityMin)}
+      <AppText
+        size={22}
+        weight="extrabold"
+        accessibilityLabel={`${t('itemForm.quantity')}: ${value}`}
+        accessibilityLiveRegion="polite"
+        style={{ width: 44, textAlign: 'center' }}
+      >
+        {String(value)}
+      </AppText>
+      {button('plus', t('itemForm.increase'), 1, value >= quantityMax)}
+    </Box>
+  );
+}
+
+// Birim açılır listesi (role="listbox"): düğmenin altında, sağa hizalı,
+// 220 px; dropIn 280 ms (translateY -8, scale .94 -> 1, köken sağ üst).
+function UnitPicker({
+  value,
+  open,
+  onToggle,
+  onPick,
+}: {
+  value: ItemUnit;
+  open: boolean;
+  onToggle: () => void;
+  onPick: (unit: ItemUnit) => void;
+}) {
+  const { t } = useTranslation();
+  const turn = useSharedValue(open ? 1 : 0);
+  const drop = useSharedValue(0);
+  useEffect(() => {
+    turn.value = withTiming(open ? 1 : 0, { duration: Durations.chevron, easing: Ease.easeOut });
+    if (open) {
+      drop.value = 0;
+      drop.value = withTiming(1, { duration: Durations.dropdown, easing: Ease.easeOut });
+    }
+  }, [drop, open, turn]);
+  const chevron = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value * 180}deg` }] }));
+  const dropStyle = useAnimatedStyle(() => ({
+    opacity: drop.value,
+    transform: [{ translateY: -8 * (1 - drop.value) }, { scale: 0.94 + 0.06 * drop.value }],
+  }));
+
+  return (
+    <View style={{ flex: 1, minWidth: 0 }}>
+      <PressScale
+        bg="card"
+        border={open ? 'brand' : 'reed'}
+        accessibilityRole="button"
+        accessibilityLabel={`${t('itemForm.unitLabel')}: ${t(`units.${value}`)}`}
+        accessibilityState={{ expanded: open }}
+        onPress={onToggle}
+        style={{
+          height: 60,
+          paddingLeft: 16,
+          paddingRight: 14,
+          borderWidth: 2,
+          borderRadius: 18,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <AppText size={18} weight="bold" numberOfLines={1} style={{ flexShrink: 1 }}>
+          {t(`units.${value}`)}
+        </AppText>
+        <Animated.View style={chevron}>
+          <Icon name="chevronDown" size={22} strokeWidth={2.4} />
+        </Animated.View>
+      </PressScale>
+      {open && (
+        <Animated.View
+          style={[
+            { position: 'absolute', right: 0, top: 68, width: 220, transformOrigin: 'top right' },
+            dropStyle,
+          ]}
+        >
+          <Box
+            bg="card"
+            border="line"
+            accessibilityRole="list"
+            accessibilityLabel={t('itemForm.unitLabel')}
+            style={{
+              padding: 6,
+              borderRadius: 20,
+              borderWidth: 1,
+              boxShadow: '0px 18px 40px -10px rgba(0,0,0,0.3)',
+              elevation: 12,
+            }}
+          >
+            {itemUnits.map((unit) => {
+              const on = unit === value;
+              return (
+                <Pressable
+                  key={unit}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: on, checked: on }}
+                  accessibilityLabel={t(`units.${unit}`)}
+                  onPress={() => onPick(unit)}
+                >
+                  <Box
+                    bg={on ? 'mint' : 'transparent'}
+                    style={{
+                      height: 52,
+                      paddingHorizontal: 14,
+                      borderRadius: 14,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <AppText
+                      size={17}
+                      weight={on ? 'extrabold' : 'semibold'}
+                      tone={on ? 'mintFg' : 'ink'}
+                    >
+                      {t(`units.${unit}`)}
+                    </AppText>
+                    {on && (
+                      <Pop>
+                        <Icon name="check" size={20} strokeWidth={2.8} color="mintFg" />
+                      </Pop>
+                    )}
+                  </Box>
+                </Pressable>
+              );
+            })}
+          </Box>
+        </Animated.View>
+      )}
+    </View>
   );
 }

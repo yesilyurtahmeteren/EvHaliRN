@@ -33,7 +33,7 @@ const writes = () => [
 ];
 
 describe('createHome', () => {
-  it('Flutter ile aynı üç yazma: homes, invites, users.homeId (en son)', async () => {
+  it('üç yazma: homes (kurucu yönetici), invites, users.homeId (en son)', async () => {
     await expect(createHome({ name: 'Yeşilyurt Evi', uid: 'u1' })).resolves.toBe('newHome');
 
     expect(writes()).toEqual([
@@ -45,6 +45,7 @@ describe('createHome', () => {
           memberIds: ['u1'],
           inviteCode: 'AB7K9TQX',
           createdAt: 'SERVER_TIMESTAMP',
+          roles: { u1: 'admin' },
         },
       ],
       ['set', 'invites/AB7K9TQX', { homeId: 'newHome', createdAt: 'SERVER_TIMESTAMP' }],
@@ -57,18 +58,27 @@ describe('createHome', () => {
 });
 
 describe('joinHome', () => {
-  it("boşluklu/küçük harfli kodu temizleyip kendi uid'ini ekler", async () => {
+  it("boşluklu/tireli/küçük harfli kodu temizleyip kendi uid'ini ekler, 'katıldı' kaydı yazar", async () => {
     jest.mocked(getDoc).mockResolvedValue({
       exists: () => true,
       data: () => ({ homeId: 'h1', createdAt: null }),
     } as never);
 
-    await expect(joinHome({ code: ' ab7k 9tqx ', uid: 'u2' })).resolves.toBe('h1');
+    await expect(joinHome({ code: ' ab7k-9tqx ', uid: 'u2' })).resolves.toBe('h1');
     expect(jest.mocked(getDoc).mock.calls[0][0]).toMatchObject({ path: 'invites/AB7K9TQX' });
     expect(writes()).toEqual([
+      [
+        'set',
+        'homes/newHome',
+        { type: 'joined', actorId: 'u2', createdAt: 'SERVER_TIMESTAMP', readBy: ['u2'] },
+      ],
       ['update', 'homes/h1', { memberIds: { arrayUnion: ['u2'] } }],
       ['update', 'users/u2', { homeId: 'h1' }],
     ]);
+    // Kayıt üyelikten sonra yazılır (kural isMember istiyor).
+    expect(jest.mocked(setDoc).mock.invocationCallOrder[0]).toBeGreaterThan(
+      Math.max(...jest.mocked(updateDoc).mock.invocationCallOrder),
+    );
   });
 
   it('olmayan kodda InvalidInviteCodeError, hiçbir şey yazılmaz', async () => {

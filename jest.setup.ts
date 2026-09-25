@@ -19,3 +19,34 @@ jest.mock('@shopify/flash-list/dist/recyclerview/utils/measureLayout', () => {
     measureItemLayout: jest.fn(() => ({ x: 0, y: 0, width: 100, height: 100 })),
   };
 });
+
+// MMKV (Nitro) testte yok: bellek içi basit depo.
+jest.mock('react-native-mmkv', () => {
+  const store = new Map<string, string | boolean>();
+  return {
+    createMMKV: () => ({
+      getString: (key: string) => store.get(key) as string | undefined,
+      getBoolean: (key: string) => store.get(key) as boolean | undefined,
+      set: (key: string, value: string | boolean) => store.set(key, value),
+      remove: (key: string) => store.delete(key),
+    }),
+  };
+});
+
+// Konuşma tanıma native modülü testte yok.
+jest.mock('expo-speech-recognition', () => ({
+  ExpoSpeechRecognitionModule: {
+    isRecognitionAvailable: () => false,
+    requestPermissionsAsync: () => Promise.resolve({ granted: false }),
+    start: jest.fn(),
+    stop: jest.fn(),
+    abort: jest.fn(),
+  },
+  useSpeechRecognitionEvent: () => undefined,
+}));
+
+// expo-blur: testte yalnızca düz View.
+jest.mock('expo-blur', () => {
+  const { View } = jest.requireActual('react-native');
+  return { BlurView: View, BlurTargetView: View };
+});

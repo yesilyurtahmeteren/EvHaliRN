@@ -1,12 +1,12 @@
 // Yerel depolama sarmalayıcısı. Flutter sürümünde yerel depolama hiç yoktu
-// (docs/ANALYSIS.md §5) - bu dosya MIGRATION_TASKS Faz 2 gereği hazır
-// duruyor, henüz saklanan bir anahtar yok. Yeni anahtar eklerken buraya
-// StorageKey olarak ekle; dağınık string anahtar kullanma.
+// (docs/ANALYSIS.md §5). Yeni anahtar eklerken buraya StorageKey olarak
+// ekle; dağınık string anahtar kullanma.
+//   themeMode - Profil'deki Aydınlık/Koyu seçimi (theme-store.ts)
 import * as SecureStore from 'expo-secure-store';
 import { createMMKV } from 'react-native-mmkv';
 import type { z } from 'zod';
 
-export type StorageKey = never;
+export type StorageKey = 'themeMode';
 export type SecureStorageKey = never;
 
 const mmkv = createMMKV({ id: 'evhali' });

@@ -1,149 +1,79 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { act, fireEvent, screen } from '@testing-library/react-native';
 
-import '@/shared/i18n';
-import { ItemForm, type ItemFormProps } from '@/features/item-form/components/item-form';
-import { itemFormSchema } from '@/features/item-form/schemas';
-import { hideToast, useToastStore } from '@/shared/components/toast/toast-store';
-import type { ItemCategory } from '@/shared/schemas';
+import { ItemForm } from '@/features/item-form/components/item-form';
+import { emptyItemForm } from '@/features/item-form/schemas';
+import { renderWithTheme, sleep } from '@/test-utils/render';
 
-const metrics = {
-  frame: { x: 0, y: 0, width: 390, height: 844 },
-  insets: { top: 0, left: 0, right: 0, bottom: 0 },
-};
+jest.mock('expo-haptics', () => ({
+  impactAsync: jest.fn(() => Promise.resolve()),
+  selectionAsync: jest.fn(() => Promise.resolve()),
+  ImpactFeedbackStyle: { Light: 'light', Medium: 'medium' },
+}));
 
-const blank = {
-  name: '',
-  quantity: 1,
-  unit: 'adet' as const,
-  note: '',
-  urgent: false,
-  category: null,
-};
-
-async function renderForm(overrides: Partial<ItemFormProps> = {}) {
+async function renderForm() {
   const onSubmit = jest.fn();
   const onClose = jest.fn();
-  await render(
-    <SafeAreaProvider initialMetrics={metrics}>
-      <ItemForm
-        mode="add"
-        defaultValues={blank}
-        homeName="Yeşilyurt Evi"
-        syncTargetNames={['Mehmet', 'Can']}
-        suggestions={[{ id: 'süt', name: 'Süt', count: 9, category: 'dairy_breakfast' }]}
-        categoriesByName={new Map<string, ItemCategory | null>([['süt', 'dairy_breakfast']])}
-        saving={false}
-        onSubmit={onSubmit}
-        onClose={onClose}
-        {...overrides}
-      />
-    </SafeAreaProvider>,
+  await renderWithTheme(
+    <ItemForm mode="add" initialValues={emptyItemForm} onSubmit={onSubmit} onClose={onClose} />,
   );
   return { onSubmit, onClose };
 }
 
 afterEach(async () => {
-  await act(async () => hideToast());
+  await act(async () => sleep(0));
 });
 
-describe('itemFormSchema', () => {
-  it('adı ve notu kırpar, boş not null olur', () => {
-    expect(itemFormSchema.parse({ ...blank, name: ' Süt ', note: '   ' })).toMatchObject({
-      name: 'Süt',
-      note: null,
-    });
-  });
-
-  it('kural sınırları: ad 1-60, miktar 1-99, not <= 100', () => {
-    expect(itemFormSchema.safeParse({ ...blank, name: '  ' }).success).toBe(false);
-    expect(itemFormSchema.safeParse({ ...blank, name: 'x'.repeat(61) }).success).toBe(false);
-    expect(itemFormSchema.safeParse({ ...blank, name: 'Süt', quantity: 100 }).success).toBe(false);
-    expect(itemFormSchema.safeParse({ ...blank, name: 'Süt', note: 'n'.repeat(101) }).success).toBe(
-      false,
-    );
-  });
-});
-
-describe('ItemForm', () => {
-  it('ekleme modu: başlık, ev adıyla alt yazı, senkron ibaresi', async () => {
-    await renderForm();
-    expect(screen.getByRole('header', { name: 'İhtiyaç Ekle' })).toBeOnTheScreen();
-    expect(screen.getByText('Yeşilyurt Evi ortak sepetine eklenecek')).toBeOnTheScreen();
-    expect(screen.getByText('Mehmet ve Can ile anında senkronize olur.')).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Listeye Ekle' })).toBeOnTheScreen();
-  });
-
-  it('düzenleme modu: farklı başlık, "Kaydet", senkron ibaresi yok', async () => {
-    await renderForm({ mode: 'edit', defaultValues: { ...blank, name: 'Süt' } });
-    expect(screen.getByRole('header', { name: 'Ürünü Düzenle' })).toBeOnTheScreen();
-    expect(screen.getByText('Değişiklikler anında senkronize olur')).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Kaydet' })).toBeOnTheScreen();
-    expect(screen.queryByText(/ile anında senkronize olur\./)).toBeNull();
-  });
-
-  it('boş adla gönderilmez (Flutter gibi)', async () => {
+describe('ItemForm (İhtiyaç Ekle)', () => {
+  it('boş adla eklenmez', async () => {
     const { onSubmit } = await renderForm();
     await fireEvent.press(screen.getByRole('button', { name: 'Listeye Ekle' }));
-    await act(async () => new Promise((resolve) => setTimeout(resolve, 20)));
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it('tüm alanları doldurup gönderir', async () => {
+  it('varsayılanlar: 1 adet, Gıda, acil değil', async () => {
     const { onSubmit } = await renderForm();
-
-    await fireEvent.changeText(screen.getByLabelText('Ürün adı'), '  Peynir ');
-    await fireEvent.press(screen.getByRole('button', { name: 'Artır' }));
-    await fireEvent.press(screen.getByRole('button', { name: 'Artır' }));
-    await fireEvent.press(screen.getByRole('radio', { name: 'kg' }));
-    await fireEvent.press(screen.getByRole('radio', { name: 'Süt & Kahvaltı' }));
-    await fireEvent.changeText(screen.getByLabelText('Marka / not (isteğe bağlı)'), ' Ezine ');
-    await fireEvent.press(screen.getByRole('switch', { name: 'Acil İhtiyaç' }));
+    await fireEvent.changeText(screen.getByLabelText('Ne lazım?'), 'Süt');
     await fireEvent.press(screen.getByRole('button', { name: 'Listeye Ekle' }));
-
-    await waitFor(() =>
-      expect(onSubmit.mock.calls[0][0]).toEqual({
-        name: 'Peynir',
-        quantity: 3,
-        unit: 'kg',
-        note: 'Ezine',
-        category: 'dairy_breakfast',
-        urgent: true,
-      }),
-    );
-  });
-
-  it('miktar 1 ile 99 arasında kalır', async () => {
-    await renderForm({ defaultValues: { ...blank, quantity: 99 } });
-    expect(screen.getByRole('button', { name: 'Artır' })).toBeDisabled();
-    expect(screen.getByRole('adjustable', { name: 'Miktar' })).toHaveAccessibilityValue({
-      now: 99,
+    expect(onSubmit).toHaveBeenCalledWith({
+      name: 'Süt',
+      quantity: 1,
+      unit: 'adet',
+      category: 'food',
+      urgent: false,
     });
   });
 
-  it('sık alınan çipi adı ve katalog kategorisini doldurur', async () => {
-    await renderForm();
-    await fireEvent.press(screen.getByRole('button', { name: 'Süt' }));
+  it('hızlı seçim adı ve bölümü doldurur; miktar, birim ve acil seçilir', async () => {
+    const { onSubmit } = await renderForm();
+    await fireEvent.press(screen.getByRole('button', { name: 'Şampuan' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Arttır' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Birim seçin: Adet' }));
+    await fireEvent.press(screen.getByRole('radio', { name: 'Kutu' }));
+    await fireEvent.press(screen.getByRole('switch', { name: 'Acil ihtiyaç' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Listeye Ekle' }));
 
-    expect(screen.getByLabelText('Ürün adı')).toHaveDisplayValue('Süt');
-    expect(screen.getByRole('radio', { name: 'Süt & Kahvaltı' })).toBeChecked();
+    expect(onSubmit).toHaveBeenCalledWith({
+      name: 'Şampuan',
+      quantity: 2,
+      unit: 'kutu',
+      category: 'care',
+      urgent: true,
+    });
   });
 
-  it('mikrofon "henüz eklenmedi" mesajı gösterir', async () => {
-    await renderForm();
-    await fireEvent.press(screen.getByRole('button', { name: 'Sesle ekle' }));
-    expect(useToastStore.getState().current?.message).toBe('Sesli giriş henüz eklenmedi.');
+  it("bölüm karoları radyo olarak seçilir; miktar 1'in altına inmez", async () => {
+    const { onSubmit } = await renderForm();
+    await fireEvent.changeText(screen.getByLabelText('Ne lazım?'), 'Pil');
+    expect(screen.getByRole('button', { name: 'Azalt' })).toBeDisabled();
+    await fireEvent.press(screen.getByRole('radio', { name: 'Diğer' }));
+    expect(screen.getByRole('radio', { name: 'Diğer' })).toBeChecked();
+    await fireEvent.press(screen.getByRole('button', { name: 'Listeye Ekle' }));
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({ category: 'other', quantity: 1 });
   });
 
-  it('kaydederken düğme yerine ilerleme çubuğu', async () => {
-    await renderForm({ saving: true });
-    expect(screen.queryByRole('button', { name: 'Listeye Ekle' })).toBeNull();
-    expect(screen.getByRole('progressbar')).toBeOnTheScreen();
-  });
-
-  it('kapat düğmesi', async () => {
+  it('Kapat düğmesi yazılı ve çalışır', async () => {
     const { onClose } = await renderForm();
-    await fireEvent.press(screen.getByRole('button', { name: 'Vazgeç' }));
-    expect(onClose).toHaveBeenCalled();
+    await fireEvent.press(screen.getByRole('button', { name: 'Kapat' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

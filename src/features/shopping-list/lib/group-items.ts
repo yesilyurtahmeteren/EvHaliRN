@@ -1,6 +1,7 @@
-// Flutter list_screen.dart _groupByCategory: sabit kategori sırası (markette
-// yürüme sırası), kategorisiz ürün "Diğer"e düşer (listenin sonu), boş grup
-// üretilmez. Kategori ürünün değil, normalize adının katalog kaydınındır.
+// Bölümlere göre gruplama (HANDOFF §2.2): 4 sabit bölüm, sıra sabit, boş
+// bölüm üretilmez. Bölüm ürünün değil, normalize adının katalog kaydınındır;
+// kaydı olmayan ürün "Diğer"e düşer. Her bölümde acil ürünler en üstte, sonra
+// yakın zamanda geri alınanlar, sonra en yeni eklenen.
 import { normalizeName } from '@/shared/lib/normalize-name';
 import { itemCategories, type Item, type ItemCategory } from '@/shared/schemas';
 
@@ -11,6 +12,7 @@ export type ItemGroup = { category: ItemCategory; items: Item[] };
 export function groupByCategory(
   items: readonly Item[],
   categoriesByName: CategoriesByName,
+  restoredAt: ReadonlyMap<string, number> = new Map(),
 ): ItemGroup[] {
   const groups = new Map<ItemCategory, Item[]>();
   for (const item of items) {
@@ -22,19 +24,15 @@ export function groupByCategory(
       group.push(item);
     }
   }
+  const recency = (item: Item) => restoredAt.get(item.id) ?? item.addedAt.getTime();
   return itemCategories.flatMap((category) => {
     const groupItems = groups.get(category);
-    return groupItems === undefined ? [] : [{ category, items: groupItems }];
+    if (groupItems === undefined) {
+      return [];
+    }
+    const sorted = [...groupItems].sort(
+      (a, b) => Number(b.urgent) - Number(a.urgent) || recency(b) - recency(a),
+    );
+    return [{ category, items: sorted }];
   });
-}
-
-// Firestore'un yerel güncellemesi işaretlenen ürünü sorgudan hemen çıkarır;
-// animasyonu bitmemiş ("ayrılan") ürünler listenin sonuna eklenerek görünür
-// kalır (Flutter _leavingItems).
-export function withLeavingItems(
-  items: readonly Item[],
-  leaving: ReadonlyMap<string, Item>,
-): Item[] {
-  const present = new Set(items.map((item) => item.id));
-  return [...items, ...[...leaving.values()].filter((item) => !present.has(item.id))];
 }

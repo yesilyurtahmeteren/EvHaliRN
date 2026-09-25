@@ -1,65 +1,48 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, screen } from '@testing-library/react-native';
 
-import '@/shared/i18n';
 import { AppText } from '@/shared/components/app-text';
 import { Button } from '@/shared/components/button';
-import { Card } from '@/shared/components/card';
-import { Chip } from '@/shared/components/chip';
+import { Checkbox } from '@/shared/components/checkbox';
 import { ConfirmDialog } from '@/shared/components/confirm-dialog';
-import { EmptyState, ErrorView, LoadingScreen } from '@/shared/components/states';
+import { ErrorView, LoadingScreen } from '@/shared/components/states';
 import { TextField } from '@/shared/components/text-field';
-import { typeScale } from '@/shared/theme';
-import { useTextScaleStore } from '@/shared/theme/text-scale-store';
-
-afterEach(async () => {
-  await act(async () => useTextScaleStore.getState().setMultiplier(1));
-});
+import { Toggle } from '@/shared/components/toggle';
+import { renderWithTheme } from '@/test-utils/render';
 
 describe('AppText', () => {
-  it('tipografi rolünün boyutunu kullanıcı çarpanıyla ölçekler', async () => {
-    await act(async () => useTextScaleStore.getState().setMultiplier(1.3));
-    await render(<AppText variant="body-lg">Süt</AppText>);
-
-    const [size, lineHeight] = typeScale['body-lg'];
+  it('tasarımdaki boyut ve ağırlığı kullanır', async () => {
+    await renderWithTheme(
+      <AppText size={18} weight="extrabold" lineHeight={1.3}>
+        Süt
+      </AppText>,
+    );
     expect(screen.getByText('Süt')).toHaveStyle({
-      fontSize: size * 1.3,
-      lineHeight: lineHeight * 1.3,
-      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 18,
+      lineHeight: 18 * 1.3,
+      fontFamily: 'PlusJakartaSans-ExtraBold',
     });
   });
 
-  it('weight rolün varsayılan ağırlığını ezer', async () => {
-    await render(
-      <AppText variant="body-md" weight="bold">
-        Ekmek
-      </AppText>,
-    );
-    expect(screen.getByText('Ekmek')).toHaveStyle({ fontFamily: 'PlusJakartaSans-Bold' });
+  it('strike üstünü çizer', async () => {
+    await renderWithTheme(<AppText strike>Ekmek</AppText>);
+    expect(screen.getByText('Ekmek')).toHaveStyle({ textDecorationLine: 'line-through' });
   });
 });
 
 describe('Button', () => {
   it('etiketi gösterir ve dokununca çalışır', async () => {
     const onPress = jest.fn();
-    await render(<Button label="Ev Oluştur" onPress={onPress} />);
-
-    await fireEvent.press(screen.getByRole('button', { name: 'Ev Oluştur' }));
+    await renderWithTheme(<Button label="İhtiyaç Ekle" icon="plus" onPress={onPress} />);
+    await fireEvent.press(screen.getByRole('button', { name: 'İhtiyaç Ekle' }));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  it('yüklenirken buton yerine ilerleme çubuğu gösterir (çift dokunma yok)', async () => {
-    await render(<Button label="Ev Oluştur" loading onPress={jest.fn()} />);
-
-    expect(screen.queryByRole('button')).toBeNull();
-    expect(screen.getByRole('progressbar')).toBeOnTheScreen();
-  });
-
-  it('devre dışıyken dokunma çalışmaz', async () => {
+  it('yüklenirken basılamaz ve meşgul olarak bildirilir', async () => {
     const onPress = jest.fn();
-    await render(<Button label="Kaydet" disabled onPress={onPress} />);
-
+    await renderWithTheme(<Button label="Kaydet" loading onPress={onPress} />);
     const button = screen.getByRole('button', { name: 'Kaydet' });
     expect(button).toBeDisabled();
+    expect(screen.getByRole('progressbar')).toBeOnTheScreen();
     await fireEvent.press(button);
     expect(onPress).not.toHaveBeenCalled();
   });
@@ -68,101 +51,105 @@ describe('Button', () => {
 describe('TextField', () => {
   it('etiketle erişilebilir, yazılan metni iletir', async () => {
     const onChangeText = jest.fn();
-    await render(<TextField label="Ev adı" onChangeText={onChangeText} />);
-
-    await fireEvent.changeText(screen.getByLabelText('Ev adı'), 'Yeşilyurt Evi');
-    expect(onChangeText).toHaveBeenCalledWith('Yeşilyurt Evi');
-  });
-
-  it('hata metnini gösterir', async () => {
-    await render(<TextField label="Davet kodu" errorText="Geçersiz davet kodu." />);
-    expect(screen.getByText('Geçersiz davet kodu.')).toBeOnTheScreen();
+    await renderWithTheme(
+      <TextField accessibilityLabel="Ne lazım?" value="" onChangeText={onChangeText} />,
+    );
+    await fireEvent.changeText(screen.getByLabelText('Ne lazım?'), 'Süt');
+    expect(onChangeText).toHaveBeenCalledWith('Süt');
   });
 });
 
-describe('Card', () => {
-  it('içeriğini gösterir', async () => {
-    await render(
-      <Card>
-        <AppText>Durum</AppText>
-      </Card>,
+describe('Checkbox', () => {
+  it('işaret durumunu bildirir, dokununca çalışır', async () => {
+    const onPress = jest.fn();
+    await renderWithTheme(
+      <Checkbox
+        checked={false}
+        onPress={onPress}
+        accessibilityLabel="Süt: aldım olarak işaretle"
+      />,
     );
-    expect(screen.getByText('Durum')).toBeOnTheScreen();
+    const box = screen.getByRole('checkbox', { name: 'Süt: aldım olarak işaretle' });
+    expect(box).not.toBeChecked();
+    await fireEvent.press(box);
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it('misafirde (disabled) dokunma çalışmaz', async () => {
+    const onPress = jest.fn();
+    await renderWithTheme(
+      <Checkbox checked={false} disabled onPress={onPress} accessibilityLabel="Süt" />,
+    );
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'Süt' }));
+    expect(onPress).not.toHaveBeenCalled();
+  });
+});
+
+describe('Toggle', () => {
+  it('switch rolüyle durumu bildirir ve tersine çevirir', async () => {
+    const onValueChange = jest.fn();
+    await renderWithTheme(
+      <Toggle value={false} onValueChange={onValueChange} accessibilityLabel="Büyük yazı" />,
+    );
+    const toggle = screen.getByRole('switch', { name: 'Büyük yazı' });
+    expect(toggle).not.toBeChecked();
+    await fireEvent.press(toggle);
+    expect(onValueChange).toHaveBeenCalledWith(true);
   });
 });
 
 describe('durum ekranları', () => {
   it('LoadingScreen erişilebilir etiketli gösterge', async () => {
-    await render(<LoadingScreen />);
-    expect(screen.getByLabelText('Yükleniyor')).toBeOnTheScreen();
+    await renderWithTheme(<LoadingScreen />);
+    expect(screen.getByRole('progressbar', { name: 'Yükleniyor' })).toBeOnTheScreen();
   });
 
   it('ErrorView mesajı ve "Tekrar dene" düğmesini gösterir', async () => {
     const onRetry = jest.fn();
-    await render(<ErrorView message="Ev bilgisi yüklenemedi." onRetry={onRetry} />);
-
+    await renderWithTheme(<ErrorView message="Ev bilgisi yüklenemedi." onRetry={onRetry} />);
     expect(screen.getByText('Ev bilgisi yüklenemedi.')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Tekrar dene' }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
   it('ErrorView onRetry yoksa düğme göstermez', async () => {
-    await render(<ErrorView message="Hata" />);
+    await renderWithTheme(<ErrorView message="Hata" />);
     expect(screen.queryByRole('button')).toBeNull();
-  });
-
-  it('EmptyState başlık ve açıklama', async () => {
-    await render(
-      <EmptyState icon="shopping-bag" title="Evde eksik bir şey yok" description="Açıklama" />,
-    );
-    expect(screen.getByText('Evde eksik bir şey yok')).toBeOnTheScreen();
-    expect(screen.getByText('Açıklama')).toBeOnTheScreen();
-  });
-});
-
-describe('Chip', () => {
-  it('seçili durumunu radyo olarak bildirir ve dokunulabilir', async () => {
-    const onPress = jest.fn();
-    await render(<Chip label="Büyük" selected onPress={onPress} />);
-
-    const chip = screen.getByRole('radio', { name: 'Büyük' });
-    expect(chip).toBeChecked();
-    await fireEvent.press(chip);
-    expect(onPress).toHaveBeenCalled();
   });
 });
 
 describe('ConfirmDialog', () => {
   it('görünmezken içerik yok', async () => {
-    await render(
+    await renderWithTheme(
       <ConfirmDialog
         visible={false}
-        title="Evden ayrıl?"
-        body="Açıklama"
+        title="Hesabınız silinsin mi?"
+        body="Geri alınamaz."
         onCancel={jest.fn()}
         onConfirm={jest.fn()}
       />,
     );
-    expect(screen.queryByText('Evden ayrıl?')).toBeNull();
+    expect(screen.queryByText('Hesabınız silinsin mi?')).toBeNull();
   });
 
-  it('Vazgeç ve Onayla doğru geri çağrıları çalıştırır', async () => {
+  it('Vazgeç ve onay düğmesi doğru geri çağrıları çalıştırır', async () => {
     const onCancel = jest.fn();
     const onConfirm = jest.fn();
-    await render(
+    await renderWithTheme(
       <ConfirmDialog
         visible
-        title="Kodu yenile?"
-        body="Eski kod çalışmayacak."
+        title="Hesabınız silinsin mi?"
+        body="Geri alınamaz."
+        confirmLabel="Hesabı sil"
+        destructive
         onCancel={onCancel}
         onConfirm={onConfirm}
       />,
     );
-
-    expect(screen.getByText('Eski kod çalışmayacak.')).toBeOnTheScreen();
-    await fireEvent.press(screen.getByRole('button', { name: 'Onayla' }));
-    expect(onConfirm).toHaveBeenCalledTimes(1);
     await fireEvent.press(screen.getByRole('button', { name: 'Vazgeç' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Hesabı sil' }));
     expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    await act(async () => undefined);
   });
 });

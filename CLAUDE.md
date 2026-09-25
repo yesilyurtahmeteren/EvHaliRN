@@ -9,60 +9,56 @@ Bu dosya ile AGENTS.md çelişirse bu dosya kazanır (ör. build EAS değil, yer
 
 ## Güncel durum (2026-09-25) — yeni oturum buradan başlar
 
-- **Fazlar:** 1-4 tamam (tüm ekranlar taşındı). Faz 5 kodu tamam (`45bdcca`: OneSignal + izin politikası);
-  uygulama A53'te girişten listeye uçtan uca çalıştı. Faz 6 başlamadı.
-- **Faz 5'te kullanıcıdan bekleyen cihaz kontrolleri** (sonuçlar henüz gelmedi):
-  1. Push bildirimi: başka hesaptan ürün eklenince A53'e bildirim geliyor mu, dokununca liste açılıyor mu?
-  2. Uçak modunda ekleme: `addItem` transaction'ı çevrimdışı hata veriyor mu (Flutter'la aynı yöntem)?
-  3. Ürünü hiç eklenmemiş bir adla yeniden adlandırınca `setCatalogCategory` (merge) kurala takılıyor mu
-     (katalog kaydında `count` yok → `count is int` şartı)? Flutter'da da aynı; kural DEĞİŞTİRİLMEZ.
-- **Cihazda çalıştırma:** `cd ~/AndroidStudioProjects/EvHaliRN && JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ANDROID_HOME=~/Library/Android/sdk npx expo run:android`
-  (`--device` seri no değil model adı ister; tek cihaz bağlıysa parametresiz). Sadece JS değiştiyse Metro
-  (`npx expo start`) yeterli, yeniden derleme gerekmez. `CI=1` Metro'da hot reload'u kapatır, kullanma.
+- **Fazlar:** 1-4 tamam, Faz 5 kodu tamam. Faz 6 başlamadı.
+- **2026-09-25: Tasarım handoff'u uygulandı** (`docs/design/`: HANDOFF.md, tokens.json, Main.dc.html —
+  tek doğruluk kaynağı). Önceki "animasyon yumuşatma" işi bunun içinde kapandı. Kullanıcı kararları:
+  - Veri tasarıma uyduruldu: **4 bölüm** (`food/clean/care/other`), **6 birim** (`adet/kg/g/litre/paket/kutu`).
+    Geçiş dönemi: kurallar eski 10 kategoriyi ve `demet`'i de kabul ediyor (Play'deki Flutter sürümü için);
+    uygulama okurken eski değerleri 4'lüye çevirir (`parseCategory`, `unit` → adet). Flutter tamamen
+    kalkınca eski değerler `firestore.rules`'tan çıkarılabilir (veri geçiş betiği yazılmadı, gerek olmadı).
+  - **Roller** (`homes.roles`, haritada yoksa 'member'; harita yoksa kurucu = `memberIds[0]` yönetici):
+    Yönetici ev adı/kod/rol/üye çıkarma; Üye ve Çocuk aynı haklar (Çocuk yalnızca etiket); Misafir
+    yalnızca görüntüler (kural düzeyinde). Yönetici, başka üye varken yöneticiliği devretmeden ayrılamaz.
+  - **Bildirimler ekranı** (`homes/{homeId}/events`): Worker 'added'/'bought' (+ push), günlük 06:00 UTC
+    'reminder' (3 günden uzun bekleyen) ve pazartesi 'weekly' kaydı yazar, 14 günden eskileri siler.
+    İstemci yalnızca kendi 'joined' kaydını yazar ve `readBy`'a kendini ekler.
+  - İki bildirim tercihi `notifyAdded`/`notifyBought` (yoksa eski `notificationsEnabled`).
+  - Hesabı sil (Google ile yeniden doğrulama → evden çık → users sil → Auth sil). Kamera ile fotoğraf YOK
+    (Storage Blaze ister, kullanıcı kart istemiyor).
+  - Sesli giriş: `expo-speech-recognition` + RECORD_AUDIO (izin dokununca). "iki litre süt" ayrıştırılır.
+  - Yeni paketler (kullanıcı onayıyla): `react-native-svg`, `expo-blur`, `expo-speech-recognition`.
+  - Alttaki hızlı ekleme alanı ve sık alınan çipleri kaldırıldı (tasarım birebir); ekleme alt sayfadan.
+- **Deploy edildi (kullanıcı onayıyla, 2026-09-25):** `firestore.rules` + `firestore.indexes.json`
+  (`firebase deploy --only firestore:rules,firestore:indexes`) ve Worker (`cd cloudflare-worker && npx wrangler
+  deploy`, iki cron: `* * * * *` ve `0 6 * * *`). **Kurallar, index'ler ve Worker artık bu repoda**
+  (Flutter reposundan kopyalandı; Flutter reposuna dokunulmuyor). Kural değişikliğinden önce emülatörde test
+  edin (scratchpad'de `@firebase/rules-unit-testing` ile 50 senaryo çalıştırılmıştı; kalıcı test yok).
+- **A53'te doğrulanan:** ekleme (toast + vurgu), işaretleme (600 ms, Alınanlar'a taşınma, Worker 'bought'
+  işledi), tema geçişi (800 ms), Evim, Profil. **Doğrulanmayan:** Bildirimler ekranı başka hesaptan gelen
+  kayıtla, rol değiştirme/üye çıkarma, hesap silme, sesli giriş (gerçek konuşma), push "Alınanlar".
+- App Check: yeni debug build'in token'ı (`0bd4e4aa…`) kullanıcı tarafından Console'a eklendi.
+- Tema tercihi MMKV'de kalıcı (`themeMode`), ilk açılışta sistem teması.
 
-## Sıradaki iş: animasyon / geçiş yumuşatma (kullanıcı talebi, 2026-09-25)
+## Tasarım katmanı (2026-09-25)
 
-Kullanıcı şikâyeti: "fonksiyonlara tıkladığımda geçişler çok sert". Bu ayrı bir oturumda ele alınacak.
-Başlamadan önce kullanıcıya hangi ekran/etkileşimde en çok rahatsız olduğunu sormak faydalı; aşağıdaki
-envanter tahmini öncelik sırası.
-
-**Hazır altyapı (kullanılmıyor):** `src/shared/theme/motion.ts` → `AppMotion.spatialFast/Default/Slow` ve
-`effectsFast/Default/Slow` (Flutter `motor` M3 yaylarının Reanimated `withSpring` karşılığı, sönüm oranı
-katsayıya çevrilmiş). Kodda hiçbir yerde kullanılmıyor, ilk iş bunları devreye almak. "Hareketi azalt"
-açıkken Flutter 100 ms lineer geçişe düşüyordu (`AppMotion.reducedMotionDurationMs`); Reanimated'ta
-`useReducedMotion()` ya da animasyon config'inde `reduceMotion` ile aynı davranış korunmalı.
-
-**Mevcut durum (animasyon olan / olmayan yerler):**
-| Nerede | Şu an | Dosya |
-|---|---|---|
-| Sekme geçişi (Ev/Alışveriş/Profil) | Animasyon yok, anında değişiyor | `app/(app)/(tabs)/_layout.tsx` (js-tabs; `animation` screenOption'ı var mı SDK 57 belgesinden bak) |
-| Alt çubuk seçili sekme / ortadaki sepet | Anında renk değişimi | `src/features/shell/components/shell-tab-bar.tsx` |
-| Ev Oluştur ↔ sekmeler, giriş ↔ uygulama | `Stack.Protected` değişimi, varsayılan geçiş | `app/_layout.tsx`, `app/(app)/_layout.tsx` |
-| Ürün formu (alt sayfa) | `transparentModal` + `slide_from_bottom`; karartma da içerikle birlikte kayıyor (ayrı fade yok), sürükleyerek kapatma yok | `app/(app)/_layout.tsx`, `src/features/item-form/components/item-form-screen.tsx` |
-| Onay / ev adı pencereleri | RN `Modal` `animationType="fade"` (kart ölçeklenmiyor) | `confirm-dialog.tsx`, `rename-home-dialog.tsx` |
-| Ürün işaretleme | Kutu anında doluyor; satır 250 ms bekleyip 200 ms `withTiming` ile soluyor; satır kaybolunca liste zıplıyor (yükseklik animasyonu yok) | `item-tile.tsx`, `use-check-off.ts` |
-| Listeye ürün ekleme / kategori grubu oluşma | Animasyon yok (FlashList satırı anında beliriyor) | `shopping-list/components/list-screen.tsx` |
-| Alınanlar bölümünü aç/kapa | Anında, ok ikonu dönmüyor | `list-sections.tsx` (`BoughtHeader`) |
-| Çip seçimi (filtre, yazı boyutu, kategori, birim) | Anında renk + tik | `src/shared/components/chip.tsx` |
-| Onay kutusu | Anında dolu/boş | `src/shared/components/checkbox.tsx` |
-| Düğmeler | Yalnızca `active:opacity-80`, ölçek/ripple yok | `button.tsx` ve Pressable'lar |
-| Anahtarlar (karanlık mod, bildirim, acil) | RN `Switch` varsayılanı | `profile-screen.tsx`, `item-form.tsx` |
-| Karanlık mod geçişi | Tüm renkler anında değişiyor | `theme-provider.tsx` |
-| Toast | `FadeInDown` / `FadeOutDown` (tek iyi örnek) | `toast/toast-host.tsx` |
-| Yükleniyor çubuğu | `withRepeat(withTiming)` | `loading-bar.tsx` |
-
-**Kurallar:**
-- Yeni paket ekleme (Moti, Lottie, `@gorhom/bottom-sheet` vb.) kullanıcı onayı ister. Reanimated 4 +
-  Gesture Handler zaten kurulu; önce bunlarla çöz (layout animasyonları `entering/exiting/layout`,
-  `LinearTransition`, `useAnimatedStyle`). Sürükleyerek kapatılan alt sayfa gerekiyorsa önce sor.
-- FlashList v2'de satır giriş/çıkış animasyonu Reanimated layout animasyonlarıyla sorunlu olabilir;
-  SDK/FlashList belgesine bakmadan varsaymayın, gerekirse cihazda deneyin.
-- Başarı ölçütü bozulmamalı: "süt bitti" 3 saniyede. Hızlı ekleme alanında klavye kapanmamalı; ekleme
-  animasyonu girişi yavaşlatmamalı (M3 "fast" yaylar, 150-250 ms).
-- İşaretleme akışının zamanlaması (250 ms bekle + 200 ms sol, bu pencerede geri al) iş kuralıdır;
-  görünüm yumuşatılabilir ama pencere ve "Geri al" davranışı korunmalı (`use-check-off.test.tsx`).
-- Testler: Reanimated jest'te animasyonları anında bitirir; mevcut 177 test yeşil kalmalı. Görsel sonuç
-  mutlaka A53'te kontrol edilmeli (jest animasyon kalitesini ölçmez).
+- Renkler `src/shared/theme/colors.ts` (tokens.json birebir). **Renk Tailwind sınıfı olarak verilmez:**
+  `AppThemeProvider` tek bir `progress` (0 aydınlık / 1 koyu) değerini 800 ms canlandırır; `Box`, `AppText`,
+  `PressScale`, `Icon` rengi `use-theme-color.ts` ile token adından türetir. Tailwind yalnızca yerleşim için.
+- `AppText`: `size/weight/lineHeight/tracking/tone/scaled/strike`. `scaled` = tasarımdaki `calc(* var(--ts))`
+  metinleri, "Büyük yazı" (1.14) açıkken 450 ms'de büyür. İç içe metin için düz `Text` (animasyonlu stil
+  iç içe metinde çalışmaz).
+- Eğriler ve süreler `motion.ts` (`Ease`, `Durations`). Giriş animasyonları `components/motion.tsx`
+  (`Rise`, `ScreenEnter`, `Pop`, `Floaty`, `FlashRing`). Sekmeler bağlı kaldığı için ekran içeriği
+  `useFocusKey` ile her odaklanışta yeniden bağlanır (animasyonlar tasarımdaki gibi baştan oynar).
+- İkonlar `components/icon.tsx`'te Main.dc.html'deki SVG yollarıyla.
+- Alt sayfalar (İhtiyaç Ekle/düzenle, üye rolü) route değil: `features/shell/ui-store.ts` + `SheetHost`,
+  kabuğun üstünde; Android bulanıklığı için sekmeler `BlurTargetView` içinde.
+- Canlı sorgular `includeMetadataChanges: true` (yoksa `fromCache` ilk değerde takılıyor, çevrimdışı bandı
+  hiç kalkmıyordu — eski arayüzde de vardı, düzeltildi).
+- Testlerde ekranlar `src/test-utils/render.tsx` (`renderWithTheme`) ile; `expo-router` mock'u
+  `test-utils/router-mock.ts`. MMKV, konuşma tanıma ve blur `jest.setup.ts`'te mock'lu.
+- Metro: kullanıcının 8081'de kendi Metro'su çalışıyor olabilir; eski paketi sunuyorsa 8082'de
+  `npx expo start --dev-client --port 8082 --clear` + `adb reverse tcp:8082 tcp:8082`.
 
 ## Kararlar (2026-09-24, kullanıcı onayıyla)
 
@@ -89,18 +85,14 @@ açıkken Flutter 100 ms lineer geçişe düşüyordu (`AppMotion.reducedMotionD
 - `android/` klasörü CNG ile üretilir, elle düzenlenmez (`.gitignore`'da). Native ayarlar `app.json`'da.
 - `google-services.json` Flutter projesinden kopyalandı, git'e girmez. **İçindeki `oauth_client` listesi boş.**
   Google Sign-In'de idToken sorunu çıkarsa Firebase Console'dan güncel dosya indirilmeli (Faz 4 auth).
-- Renkler: `src/shared/theme/colors.ts` tek kaynak. Tailwind renkleri CSS değişkeni, `AppThemeProvider`
-  kök View'a `vars()` ile basıyor. `tailwind.config.js` içindeki `colorNames` listesi colors.ts ile
-  eşit olmalı (test kontrol ediyor).
-- Font: değişken font yerine 4 statik ağırlık (`font-regular/medium/semibold/bold`). Android'de
+- Renkler: bkz. "Tasarım katmanı". Test, colors.ts'in `docs/design/tokens.json` ile eşitliğini kontrol ediyor.
+- Font: değişken font yerine 5 statik ağırlık (regular/medium/semibold/bold/extrabold). Android'de
   `fontWeight` ile ağırlık seçilmez, aile adı kullanılır.
 - Kontroller: `npm run typecheck`, `npm run lint`, `npm test`.
 
 ## Ortak katman kuralları (Faz 3)
 
-- Metin: ham `<Text>` yerine `AppText` (`variant` = tipografi rolü, `tone` = renk token'ı). Kullanıcının
-  yazı boyutu çarpanı (`text-scale-store`) yalnızca AppText/TextField üzerinden uygulanıyor. Prop adı `role`
-  DEĞİL: RN'nin erişilebilirlik `role` prop'uyla çakışıp tipi `never` yapıyordu.
+- Metin: ham `<Text>` yerine `AppText` (bkz. "Tasarım katmanı").
 - Firestore okuma: `liveQueryOptions(key, subscribe)` + `useQuery` (`src/shared/lib/firebase/live-query.ts`).
   Okuma hatası "veri yok" ile karıştırılmaz, sorgu `error` durumuna düşer.
 - Yazma: `useFeedbackMutation` (hatada titreşim + Türkçe toast, `run()` bool döner). Hata sessizce yutulmaz.
@@ -139,8 +131,8 @@ açıkken Flutter 100 ms lineer geçişe düşüyordu (`AppMotion.reducedMotionD
 
 - Güvenlik (§4) pazarlığa kapalı: uygulamaya sır gömülmez, tek güvenlik sınırı `firestore.rules`,
   kurallar gevşetilerek sorun çözülmez, bildirim istemciden gönderilmez, veri minimizasyonu uygulanır.
-- Veri modeli (§3) ve güvenlik kuralları değişmez. RN uygulaması Flutter sürümüyle aynı Firestore'a
-  aynı biçimde yazar.
+- Veri modeli (§3) 2026-09-25'te kullanıcı onayıyla genişletildi (bkz. "Güncel durum"); kurallar geriye
+  uyumlu tutuldu, Flutter sürümü aynı Firestore'da çalışmaya devam ediyor.
 - Başarı ölçütü: "süt bitti" 3 saniyede girilebilmeli.
 - Kod İngilizce, kullanıcının gördüğü metinler Türkçe (i18n dosyasından).
 - TODO bırakma, soru varsa sor.

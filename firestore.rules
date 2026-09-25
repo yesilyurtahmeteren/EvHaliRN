@@ -1,0 +1,272 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function home(homeId) {
+      return get(/databases/$(database)/documents/homes/$(homeId)).data;
+    }
+
+    function isMember(homeId) {
+      return signedIn() && request.auth.uid in home(homeId).memberIds;
+    }
+
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // ---- roller (2026-09-25, tasarım handoff'u) ----
+    // homes.roles: { uid: 'admin' | 'member' | 'child' | 'guest' }. Haritada
+    // olmayan üye 'member' sayılır. roles alanı hiç olmayan eski evlerde
+    // (Flutter sürümüyle kurulmuş) evi kuran kişi, yani memberIds[0], yönetici.
+    function roleIn(data, uid) {
+      return data.get('roles', {}).get(uid, 'member');
+    }
+
+    function isAdminIn(data, uid) {
+      return roleIn(data, uid) == 'admin'
+        || (!('roles' in data.keys()) && data.memberIds.size() > 0 && data.memberIds[0] == uid);
+    }
+
+    function isAdmin(homeId) {
+      return isMember(homeId) && isAdminIn(home(homeId), request.auth.uid);
+    }
+
+    // Misafir yalnızca görüntüler: ürün/katalog yazmaları kuralda engellenir.
+    function canWrite(homeId) {
+      return isMember(homeId) && roleIn(home(homeId), request.auth.uid) != 'guest';
+    }
+
+    function validRoleValues(roles) {
+      return roles.values().toSet().difference(['admin','member','child','guest'].toSet()).size() == 0;
+    }
+
+    // Geçiş dönemi: Play'deki Flutter sürümü hâlâ eski 10 kategoriyi ve
+    // 'demet' birimini yazıyor. RN sürümü yayılıp geçiş betiği çalıştıktan
+    // sonra eski değerler bu listelerden çıkarılabilir.
+    function validCategory(value) {
+      return value in [
+        'food','clean','care','other',
+        'fruit_vegetable','dairy_breakfast','meat_deli','bakery','staple',
+        'beverage','snack','cleaning','personal_care'
+      ];
+    }
+
+    function validUnit(value) {
+      return value in ['adet','kg','g','litre','paket','kutu','demet'];
+    }
+
+    // ---- users ----
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(
+             ['displayName','photoUrl','homeId','pushTokens','notificationsEnabled','textScale',
+              'notifyAdded','notifyBought'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() <= 60
+        // textScale henuz yazan bir ekran yok (Faz 7 - yazi boyutu ayari,
+        // §8 adim 9), o yuzden yoksa da gecerli. Varsa 0.8-1.5 araliginda.
+        && (!('textScale' in request.resource.data.keys())
+            || (request.resource.data.textScale >= 0.8
+                && request.resource.data.textScale <= 1.5))
+        && (!('notifyAdded' in request.resource.data.keys())
+            || request.resource.data.notifyAdded is bool)
+        && (!('notifyBought' in request.resource.data.keys())
+            || request.resource.data.notifyBought is bool);
+
+      // Yönetici birini evden çıkarınca, aynı batch'te onun homeId'sini
+      // null yapar (yoksa çıkarılan kişi okuyamadığı bir eve bakmaya devam
+      // eder). Yalnızca homeId -> null, yalnızca batch sonunda artık üye
+      // olmayan biri için.
+      allow update: if signedIn()
+        && request.auth.uid != uid
+        && changedKeys().hasOnly(['homeId'])
+        && request.resource.data.homeId == null
+        && resource.data.homeId is string
+        && isAdmin(resource.data.homeId)
+        && !(uid in getAfter(/databases/$(database)/documents/homes/$(resource.data.homeId)).data.memberIds);
+
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    // ---- invites ----
+    // Kod tahmin edilemez olduğu için okuması serbest; listeleme yasak.
+    match /invites/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if isAdmin(request.resource.data.homeId);
+      allow update: if false;
+      allow delete: if isAdmin(resource.data.homeId);
+    }
+
+    // ---- homes ----
+    match /homes/{homeId} {
+      allow read: if isMember(homeId);
+
+      // Evi kuran yönetici olur. roles alanı olmadan kurmak (Flutter) da
+      // geçerli, o durumda memberIds[0] yönetici sayılır.
+      allow create: if signedIn()
+        && request.resource.data.memberIds == [request.auth.uid]
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 60
+        && (!('roles' in request.resource.data.keys())
+            || (request.resource.data.roles.keys() == [request.auth.uid]
+                && request.resource.data.roles[request.auth.uid] == 'admin'));
+
+      // Ev adını yalnızca yönetici değiştirir.
+      allow update: if isAdmin(homeId)
+        && changedKeys().hasOnly(['name'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 60;
+
+      // Davetle katılma: kullanıcı yalnızca KENDİ uid'ini ekleyebilir,
+      // başkasını çıkaramaz, üye sayısı 12'yi geçemez. Rol yazılmaz (üye).
+      allow update: if signedIn()
+        && changedKeys().hasOnly(['memberIds'])
+        && request.resource.data.memberIds.toSet()
+             == resource.data.memberIds.toSet().union([request.auth.uid].toSet())
+        && request.resource.data.memberIds.size() <= 12;
+
+      // Evden ayrılma: kullanıcı yalnızca KENDİ uid'ini (ve varsa kendi rol
+      // kaydını) çıkarabilir. Yönetici, başka biri kalıyorsa önce yöneticiliği
+      // devretmeli: rol haritası varsa ve ev boşalmıyorsa en az bir yönetici kalır.
+      allow update: if isMember(homeId)
+        && changedKeys().hasOnly(['memberIds','roles'])
+        && request.resource.data.memberIds.toSet()
+             == resource.data.memberIds.toSet().difference([request.auth.uid].toSet())
+        && request.resource.data.get('roles', {}).diff(resource.data.get('roles', {}))
+             .affectedKeys().hasOnly([request.auth.uid])
+        && !(request.auth.uid in request.resource.data.get('roles', {}))
+        && (!('roles' in resource.data.keys())
+            || request.resource.data.memberIds.size() == 0
+            || request.resource.data.roles.values().hasAny(['admin']));
+
+      // Yönetici başka bir üyeyi çıkarır (tek seferde bir kişi, kendisi değil).
+      allow update: if isAdmin(homeId)
+        && changedKeys().hasOnly(['memberIds','roles'])
+        && request.resource.data.memberIds.toSet().difference(resource.data.memberIds.toSet()).size() == 0
+        && resource.data.memberIds.toSet().difference(request.resource.data.memberIds.toSet()).size() == 1
+        && request.auth.uid in request.resource.data.memberIds
+        && request.resource.data.get('roles', {}).diff(resource.data.get('roles', {})).affectedKeys()
+             .difference(resource.data.memberIds.toSet().difference(request.resource.data.memberIds.toSet()))
+             .size() == 0;
+
+      // Yönetici rolleri değiştirir: yalnızca üyelere, yalnızca geçerli
+      // değerler, en az bir yönetici kalır.
+      allow update: if isAdmin(homeId)
+        && changedKeys().hasOnly(['roles'])
+        && request.resource.data.roles.keys().toSet().difference(resource.data.memberIds.toSet()).size() == 0
+        && validRoleValues(request.resource.data.roles)
+        && request.resource.data.roles.values().hasAny(['admin']);
+
+      // Davet kodu yenileme: yalnızca yönetici.
+      allow update: if isAdmin(homeId)
+        && changedKeys().hasOnly(['inviteCode']);
+
+      allow delete: if false;
+
+      // ---- items ----
+      match /items/{itemId} {
+        allow read: if isMember(homeId);
+
+        allow create: if canWrite(homeId)
+          && request.resource.data.keys().hasOnly(
+               ['name','status','addedBy','addedAt','boughtBy','boughtAt','notified',
+                'quantity','note','unit','urgent'])
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 60
+          && request.resource.data.status == 'needed'
+          && request.resource.data.addedBy == request.auth.uid
+          && request.resource.data.addedAt == request.time
+          && request.resource.data.quantity is int
+          && request.resource.data.quantity >= 1
+          && request.resource.data.quantity <= 99
+          && validUnit(request.resource.data.unit)
+          && request.resource.data.urgent is bool
+          && (request.resource.data.note == null
+              || (request.resource.data.note is string
+                  && request.resource.data.note.size() <= 100));
+
+        // Durum değişimi: ekleyen kişi olmak şart değil, yazabilen üye olmak
+        // yeterli. boughtNotified: "Alınanlar" bildirimi için Worker'ın işaret
+        // alanı; istemci yalnızca false yazabilir (Worker true yapar).
+        allow update: if canWrite(homeId)
+          && changedKeys().hasOnly(['status','boughtBy','boughtAt','boughtNotified'])
+          && request.resource.data.status in ['needed','bought']
+          && (request.resource.data.boughtBy == request.auth.uid
+              || request.resource.data.boughtBy == null)
+          && request.resource.data.addedBy == resource.data.addedBy
+          && (!('boughtNotified' in changedKeys())
+              || request.resource.data.boughtNotified == false);
+
+        // İçerik düzenleme (Faz 7 - detay ekranı, §8 adım 7): ad/miktar/not/
+        // birim/acil değiştirilebilir, kim ekledi ve ne zaman değişmez. Durum
+        // değişimiyle aynı kurala karıştırılmıyor - ayrı yetkiler, ayrı
+        // kalmaları okunabilirliği korur (README §5.1).
+        allow update: if canWrite(homeId)
+          && changedKeys().hasOnly(['name','quantity','note','unit','urgent'])
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 60
+          && request.resource.data.quantity is int
+          && request.resource.data.quantity >= 1
+          && request.resource.data.quantity <= 99
+          && validUnit(request.resource.data.unit)
+          && request.resource.data.urgent is bool
+          && (request.resource.data.note == null
+              || (request.resource.data.note is string
+                  && request.resource.data.note.size() <= 100))
+          && request.resource.data.addedBy == resource.data.addedBy
+          && request.resource.data.addedAt == resource.data.addedAt;
+
+        allow delete: if canWrite(homeId);
+      }
+
+      // ---- catalog ----
+      match /catalog/{itemId} {
+        allow read: if isMember(homeId);
+        allow write: if canWrite(homeId)
+          && request.resource.data.keys().hasOnly(['name','count','lastUsedAt','category'])
+          && request.resource.data.count is int
+          && request.resource.data.count >= 0
+          // Sabit liste; kullanıcı kendi kategorisini oluşturamaz. Alana hiç
+          // dokunulmamışsa (eski yazma yolu) da geçerli - olmayan bir alana
+          // request.resource.data.x ile erişmek Firestore rules'ta
+          // karşılaştırma değil, değerlendirme HATASI fırlatır.
+          && (!('category' in request.resource.data.keys())
+              || request.resource.data.category == null
+              || validCategory(request.resource.data.category));
+      }
+
+      // ---- events (Bildirimler ekranı, 2026-09-25) ----
+      // 'added' / 'bought' / 'reminder' / 'weekly' kayıtlarını yalnızca
+      // Cloudflare Worker (servis hesabı, kuralları atlar) yazar. İstemci
+      // yalnızca kendi 'joined' kaydını oluşturabilir ve bir kaydı kendisi
+      // için okundu işaretleyebilir.
+      match /events/{eventId} {
+        allow read: if isMember(homeId);
+
+        allow create: if isMember(homeId)
+          && request.resource.data.keys().hasOnly(['type','actorId','createdAt','readBy'])
+          && request.resource.data.type == 'joined'
+          && request.resource.data.actorId == request.auth.uid
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.readBy == [request.auth.uid];
+
+        allow update: if isMember(homeId)
+          && changedKeys().hasOnly(['readBy'])
+          && request.resource.data.readBy.toSet()
+               == resource.data.get('readBy', []).toSet().union([request.auth.uid].toSet())
+          && request.resource.data.readBy.size() <= 12;
+
+        allow delete: if false;
+      }
+    }
+  }
+}

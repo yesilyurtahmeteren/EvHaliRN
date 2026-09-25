@@ -49,10 +49,11 @@ describe('generateInviteCode', () => {
 describe('davet kodu biçimleri', () => {
   it('yapıştırılan boşluklu/küçük harfli kodu temizler', () => {
     expect(cleanInviteCode(' ab7k 9tqx\n')).toBe('AB7K9TQX');
+    expect(cleanInviteCode('ab7k-9tqx')).toBe('AB7K9TQX');
   });
 
-  it('görüntülemede 4+4 gruplar', () => {
-    expect(formatInviteCode('AB7K9TQX')).toBe('AB7K 9TQX');
+  it('görüntülemede 4+4 gruplar, tasarımdaki gibi tireyle', () => {
+    expect(formatInviteCode('AB7K9TQX')).toBe('AB7K-9TQX');
     expect(formatInviteCode('')).toBe('');
   });
 });

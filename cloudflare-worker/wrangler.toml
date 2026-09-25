@@ -1,0 +1,20 @@
+name = "evhali-notifications"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+
+# Firestore'da yeni eklenen urunleri kontrol edip toplu bildirim gonderir.
+# Cloudflare'in cron sistemi en hizli dakikada bir calisabiliyor (README'nin
+# istedigi 30 saniye yerine 60 saniyelik toplama penceresi - kullanicinin
+# onayiyla).
+[triggers]
+# Ikinci tetik: her gun 06:00 UTC (09:00 TR) hatirlatma, haftalik ozet
+# (pazartesi) ve eski Bildirimler kayitlarinin temizligi.
+crons = ["* * * * *", "0 6 * * *"]
+
+[vars]
+FIREBASE_PROJECT_ID = "evhali-afde3"
+ONESIGNAL_APP_ID = "243eef8a-fc8d-45dc-8be3-0cdd1177ef38"
+
+# Asagidaki iki secret, deploy sonrasi ayrica eklenmeli (bu dosyaya YAZILMAZ):
+#   wrangler secret put FIREBASE_SERVICE_ACCOUNT_JSON
+#   wrangler secret put ONESIGNAL_REST_API_KEY

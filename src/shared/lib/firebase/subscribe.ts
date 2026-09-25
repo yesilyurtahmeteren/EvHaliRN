@@ -42,9 +42,12 @@ export function subscribeQuery<T>(
   query: Query,
   parse: (id: string, data: DocData) => T,
 ): Subscribe<QueryResult<T>> {
+  // includeMetadataChanges: önbellekten sunucuya geçiş veri değişmese de
+  // bildirilsin, yoksa fromCache ilk değerinde (true) takılı kalır.
   return (onNext, onError) =>
     onSnapshot(
       query,
+      { includeMetadataChanges: true },
       (snapshot) => {
         try {
           onNext({

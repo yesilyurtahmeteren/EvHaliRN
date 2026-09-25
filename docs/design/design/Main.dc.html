@@ -1,0 +1,923 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Ev Hali prototip</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#fbf8f1;color:#1c1c18}
+*{box-sizing:border-box}
+button{font-family:inherit;cursor:pointer;color:inherit}
+a{color:#1d5a3f}a:hover{color:#123d2a}
+input::placeholder{color:var(--muted)}
+input:focus{outline:none}
+button:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.scroll{scrollbar-width:none}.scroll::-webkit-scrollbar{display:none}
+.hs{scrollbar-width:none}.hs::-webkit-scrollbar{display:none}
+
+@property --bg{syntax:'<color>';inherits:true;initial-value:#fbf8f1}
+@property --card{syntax:'<color>';inherits:true;initial-value:#ffffff}
+@property --well{syntax:'<color>';inherits:true;initial-value:#f0ede5}
+@property --well2{syntax:'<color>';inherits:true;initial-value:#e9e5dc}
+@property --soft{syntax:'<color>';inherits:true;initial-value:#f6f3ed}
+@property --line{syntax:'<color>';inherits:true;initial-value:#e5e2dc}
+@property --reed{syntax:'<color>';inherits:true;initial-value:#cfc9bb}
+@property --ink{syntax:'<color>';inherits:true;initial-value:#1c1c18}
+@property --ink2{syntax:'<color>';inherits:true;initial-value:#3d433f}
+@property --muted{syntax:'<color>';inherits:true;initial-value:#5f6661}
+@property --brand{syntax:'<color>';inherits:true;initial-value:#1d5a3f}
+@property --btn{syntax:'<color>';inherits:true;initial-value:#1d5a3f}
+@property --mint{syntax:'<color>';inherits:true;initial-value:#d4e9dc}
+@property --mintfg{syntax:'<color>';inherits:true;initial-value:#174a33}
+@property --peach{syntax:'<color>';inherits:true;initial-value:#ffdccb}
+@property --peachfg{syntax:'<color>';inherits:true;initial-value:#8f3d1b}
+@property --honey{syntax:'<color>';inherits:true;initial-value:#fde6bf}
+@property --honeyfg{syntax:'<color>';inherits:true;initial-value:#664000}
+@property --sky{syntax:'<color>';inherits:true;initial-value:#dde9f3}
+@property --skyfg{syntax:'<color>';inherits:true;initial-value:#23486a}
+@property --hero{syntax:'<color>';inherits:true;initial-value:#e6efe8}
+@property --tip{syntax:'<color>';inherits:true;initial-value:#fbece2}
+@property --dangerbg{syntax:'<color>';inherits:true;initial-value:#ffdad6}
+@property --dangerfg{syntax:'<color>';inherits:true;initial-value:#93000a}
+@property --head{syntax:'<color>';inherits:true;initial-value:rgba(251,248,241,.95)}
+@property --nav{syntax:'<color>';inherits:true;initial-value:#ffffff}
+@property --shc{syntax:'<color>';inherits:true;initial-value:rgba(29,90,63,.09)}
+@property --scrim{syntax:'<color>';inherits:true;initial-value:rgba(28,28,24,.36)}
+@property --toastbg{syntax:'<color>';inherits:true;initial-value:#1f2a24}
+@property --toastfg{syntax:'<color>';inherits:true;initial-value:#f3f0ea}
+@property --ts{syntax:'<number>';inherits:true;initial-value:1}
+
+.eh{
+--bg:#fbf8f1;--card:#ffffff;--well:#f0ede5;--well2:#e9e5dc;--soft:#f6f3ed;--line:#e5e2dc;--reed:#cfc9bb;
+--ink:#1c1c18;--ink2:#3d433f;--muted:#5f6661;--brand:#1d5a3f;--btn:#1d5a3f;
+--mint:#d4e9dc;--mintfg:#174a33;--peach:#ffdccb;--peachfg:#8f3d1b;--honey:#fde6bf;--honeyfg:#664000;--sky:#dde9f3;--skyfg:#23486a;
+--hero:#e6efe8;--tip:#fbece2;--dangerbg:#ffdad6;--dangerfg:#93000a;--head:rgba(251,248,241,.95);--nav:#ffffff;
+--shc:rgba(29,90,63,.09);--scrim:rgba(28,28,24,.36);--toastbg:#1f2a24;--toastfg:#f3f0ea;--ts:1;
+transition:--bg .8s ease,--card .8s ease,--well .8s ease,--well2 .8s ease,--soft .8s ease,--line .8s ease,--reed .8s ease,--ink .8s ease,--ink2 .8s ease,--muted .8s ease,--brand .8s ease,--btn .8s ease,--mint .8s ease,--mintfg .8s ease,--peach .8s ease,--peachfg .8s ease,--honey .8s ease,--honeyfg .8s ease,--sky .8s ease,--skyfg .8s ease,--hero .8s ease,--tip .8s ease,--dangerbg .8s ease,--dangerfg .8s ease,--head .8s ease,--nav .8s ease,--shc .8s ease,--scrim .8s ease,--toastbg .8s ease,--toastfg .8s ease,--ts .45s cubic-bezier(.22,1,.36,1);
+}
+.eh.dark{
+--bg:#121815;--card:#1c2420;--well:#242d28;--well2:#2b3530;--soft:#1f2823;--line:#333d37;--reed:#56615a;
+--ink:#eef1ec;--ink2:#c9d1cb;--muted:#a2aca5;--brand:#93d6b1;--btn:#2f7d58;
+--mint:#1f3b2c;--mintfg:#b9ead0;--peach:#45271a;--peachfg:#ffbf9f;--honey:#3f321a;--honeyfg:#f3cf8a;--sky:#1d2d3b;--skyfg:#b7d4ec;
+--hero:#192a21;--tip:#2a211b;--dangerbg:#45201e;--dangerfg:#ffb4ab;--head:rgba(18,24,21,.95);--nav:#1a221e;
+--shc:rgba(0,0,0,.45);--scrim:rgba(0,0,0,.55);--toastbg:#eef1ec;--toastfg:#1c1c18;
+}
+.eh.big{--ts:1.14}
+
+@keyframes scrIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.scr{animation:scrIn .42s cubic-bezier(.22,1,.36,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:none}}
+.rise{animation:rise .55s cubic-bezier(.22,1,.36,1) both}
+@keyframes pop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:scale(1);opacity:1}}
+.pop{animation:pop .6s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes bump{0%{transform:scale(1)}35%{transform:scale(1.28)}100%{transform:scale(1)}}
+.bump{animation:bump .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes logoIn{0%{transform:translateY(24px) scale(.6) rotate(-8deg);opacity:0}60%{transform:translateY(-4px) scale(1.06) rotate(2deg);opacity:1}100%{transform:none;opacity:1}}
+.logo-in{animation:logoIn .9s cubic-bezier(.34,1.56,.64,1) .1s both}
+@keyframes sway{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+.sway{animation:sway 4s ease-in-out 1.1s infinite;transform-origin:50% 20%}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.floaty{animation:floaty 3.2s ease-in-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin .8s linear infinite}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes fadeOut{from{opacity:1}to{opacity:0}}
+.backdrop{animation:fadeIn .3s ease both}
+.backdrop.out{animation:fadeOut .26s ease both}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:none}}
+@keyframes sheetDown{from{transform:none}to{transform:translateY(100%)}}
+.sheet{animation:sheetUp .5s cubic-bezier(.22,1,.36,1) both}
+.sheet.out{animation:sheetDown .26s cubic-bezier(.4,0,1,1) both}
+@keyframes dropIn{from{opacity:0;transform:translateY(-8px) scale(.94)}to{opacity:1;transform:none}}
+.drop{animation:dropIn .28s cubic-bezier(.22,1,.36,1) both;transform-origin:top right}
+@keyframes toast{0%{opacity:0;transform:translate(-50%,24px) scale(.96)}10%,86%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,12px)}}
+.toast{animation:toast 2.6s cubic-bezier(.22,1,.36,1) both}
+@keyframes flash{0%{box-shadow:0 0 0 3px var(--brand)}100%{box-shadow:0 0 0 0 rgba(0,0,0,0)}}
+.flash{animation:rise .5s cubic-bezier(.22,1,.36,1) both,flash 1.8s ease .3s both}
+@keyframes shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-7px)}40%,60%{transform:translateX(7px)}}
+.shake{animation:shake .45s both}
+@keyframes grow{from{width:0}}
+.grow{animation:grow 1.3s cubic-bezier(.22,1,.36,1) .3s both}
+@keyframes ring{from{stroke-dashoffset:150.8}}
+.ring{animation:ring 1.4s cubic-bezier(.22,1,.36,1) .3s both}
+@keyframes shine{0%{transform:translateX(-120%)}60%,100%{transform:translateX(320%)}}
+.shine{animation:shine 2.8s ease-in-out 1.4s infinite}
+@keyframes bellRing{0%,55%,100%{transform:rotate(0)}5%{transform:rotate(16deg)}12%{transform:rotate(-14deg)}19%{transform:rotate(10deg)}26%{transform:rotate(-8deg)}33%{transform:rotate(4deg)}40%{transform:rotate(-2deg)}}
+.ring-bell{animation:bellRing 3.2s ease-in-out .6s infinite;transform-origin:50% 12%}
+.fill{transition:width .9s cubic-bezier(.34,1.25,.64,1)}
+.card{transition:transform .2s ease,opacity .35s ease}
+.press{transition:transform .15s ease}
+.press:active{transform:scale(.96)}
+.cb{transition:background-color .3s ease,border-color .3s ease,transform .35s cubic-bezier(.34,1.56,.64,1)}
+.ck path{stroke-dasharray:24;stroke-dashoffset:24;transition:stroke-dashoffset .35s ease .08s}
+.checking .cb{background-color:var(--btn);border-color:var(--btn);transform:scale(1.1)}
+.checking .ck path{stroke-dashoffset:0}
+.checking .nm{text-decoration:line-through;text-decoration-thickness:2px}
+.checking{opacity:.55;transform:translateX(10px)}
+.chev{transition:transform .35s cubic-bezier(.22,1,.36,1)}
+.knob{transition:transform .45s cubic-bezier(.34,1.4,.64,1)}
+.seg{transition:transform .55s cubic-bezier(.34,1.3,.64,1)}
+.sunmoon{transition:transform .8s cubic-bezier(.34,1.3,.64,1)}
+.navpill{transition:width .3s cubic-bezier(.22,1,.36,1)}
+.fab{transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+.fab:active{transform:scale(.92)}
+.field:focus-within{border-color:var(--brand) !important}
+.note{transition:transform .2s ease}
+.note:active{transform:scale(.98)}
+.udot{transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .25s ease}
+.d1{animation-delay:.2s}.d2{animation-delay:.32s}.d3{animation-delay:.44s}.d4{animation-delay:.58s}.d5{animation-delay:.72s}.d6{animation-delay:.86s}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}}
+</style>
+</helmet>
+<div class="{{rootCls}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; background: var(--bg); color: var(--ink); font-family: 'Plus Jakarta Sans', system-ui, sans-serif">
+
+<!-- ============ GİRİŞ ============ -->
+<sc-if value="{{isLogin}}" hint-placeholder-val="{{ true }}">
+<div class="scr" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; padding: 32px 24px 34px">
+<div style="flex-grow: 1"></div>
+<div class="logo-in" style="width: 156px; height: 156px; border-radius: 42px; box-shadow: 0 24px 48px -12px rgba(29,90,63,.4), 0 6px 14px -4px rgba(29,90,63,.2)">
+<img class="sway" src="../assets/logo-512.png" alt="Ev Hali logosu" style="width: 156px; height: 156px; display: block; border-radius: 42px">
+</div>
+<h1 class="rise d2" style="margin: 30px 0 0; font-size: 46px; line-height: 52px; font-weight: 800; letter-spacing: -0.03em; color: var(--brand)">Ev Hali</h1>
+<p class="rise d3" style="margin: 10px 0 0; max-width: 310px; text-align: center; font-size: 19px; line-height: 28px; color: var(--ink2)">Evinizin ortak alışveriş listesi. Kolay, sade, herkes için.</p>
+<div style="flex-grow: 1"></div>
+<button class="press rise d5" onClick="{{login}}" style="width: 100%; height: 64px; border: 2px solid var(--line); border-radius: 999px; background: var(--card); display: flex; align-items: center; justify-content: center; gap: 14px; font-size: 19px; font-weight: 700; color: var(--ink); box-shadow: 0 12px 32px -6px var(--shc)">
+<sc-if value="{{loggingIn}}" hint-placeholder-val="{{ false }}">
+<svg class="spin" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="var(--line)" stroke-width="3"></circle><path d="M21 12a9 9 0 0 0-9-9" stroke="var(--brand)" stroke-width="3" stroke-linecap="round"></path></svg>
+<span>Giriş yapılıyor…</span>
+</sc-if>
+<sc-if value="{{notLoggingIn}}" hint-placeholder-val="{{ true }}">
+<svg width="24" height="24" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path></svg>
+<span>Google ile Giriş Yap</span>
+</sc-if>
+</button>
+<div class="rise d6" style="margin-top: 18px; display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; color: var(--ink2)">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v6c0 4.4 3 7.6 7 9 4-1.4 7-4.6 7-9V6z"></path><path d="m9 12 2 2 4-4"></path></svg>
+Bilgileriniz güvende</div>
+</div>
+</sc-if>
+
+<!-- ============ UYGULAMA ============ -->
+<sc-if value="{{isApp}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0">
+
+<!-- Başlık -->
+<div style="position: absolute; top: 0; left: 0; right: 0; height: 68px; z-index: 5; display: flex; align-items: center; justify-content: space-between; padding: 0 16px 0 20px; background: var(--head); border-bottom: 1px solid var(--line)">
+<div style="display: flex; align-items: center; gap: 10px">
+<img src="../assets/logo-512.png" alt="" style="width: 38px; height: 38px; border-radius: 11px; display: block">
+<span class="pop" style="font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink)">{{headerTitle}}</span>
+</div>
+<div style="display: flex; align-items: center; gap: 4px">
+<button class="press" onClick="{{goNotifs}}" aria-label="{{bellAria}}" style="position: relative; width: 48px; height: 48px; padding: 0; border: none; border-radius: 50%; background: {{bellBg}}; display: flex; align-items: center; justify-content: center; color: var(--ink)">
+<svg class="{{bellCls}}" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"></path><path d="M10 21h4"></path></svg>
+<sc-if value="{{hasUnread}}" hint-placeholder-val="{{ true }}">
+<span class="pop" style="position: absolute; top: 4px; right: 3px; min-width: 21px; height: 21px; padding: 0 5px; border-radius: 999px; border: 2px solid var(--bg); background: #b8532a; color: #ffffff; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center">{{unreadCount}}</span>
+</sc-if>
+</button>
+<button onClick="{{goProfile}}" aria-label="Profil" style="width: 48px; height: 48px; padding: 0; border: none; background: transparent; display: flex; align-items: center; justify-content: center">
+<img src="../assets/avatar-zeynep.jpg" alt="" style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--card); object-fit: cover; display: block">
+</button>
+</div>
+</div>
+
+<!-- ---------- ALIŞVERİŞ LİSTESİ ---------- -->
+<sc-if value="{{isList}}" hint-placeholder-val="{{ true }}">
+<div class="scroll scr" style="position: absolute; top: 68px; left: 0; right: 0; bottom: 0; overflow-y: auto; padding: 16px 20px 140px">
+
+<div class="rise" style="padding: 20px; border-radius: 28px; background: var(--card); box-shadow: 0 6px 24px -6px var(--shc)">
+<div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 12px">
+<div style="display: flex; align-items: baseline; gap: 10px">
+<span class="{{countCls}}" style="display: inline-block; font-size: 44px; line-height: 44px; font-weight: 800; letter-spacing: -0.03em; color: var(--brand)">{{pendingCount}}</span>
+<span style="font-size: calc(18px * var(--ts)); font-weight: 700; color: var(--ink)">ihtiyaç bekliyor</span>
+</div>
+<span style="font-size: calc(15px * var(--ts)); font-weight: 600; color: var(--ink2); white-space: nowrap">{{progressText}}</span>
+</div>
+<div role="progressbar" aria-label="Alışveriş ilerlemesi" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{progressPct}}" style="position: relative; margin-top: 16px; height: 16px; border-radius: 999px; background: var(--well); overflow: hidden">
+<div class="grow fill" style="position: relative; height: 16px; width: {{progressPct}}%; min-width: 16px; border-radius: 999px; background: var(--btn); overflow: hidden">
+<span class="shine" style="position: absolute; top: 0; bottom: 0; left: 0; width: 40%; background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.35), rgba(255,255,255,0))"></span>
+</div>
+</div>
+<div style="margin-top: 10px; font-size: calc(15px * var(--ts)); color: var(--ink2)">{{progressHint}}</div>
+</div>
+
+<button class="press rise d1" onClick="{{openSheet}}" style="margin-top: 14px; width: 100%; height: 64px; border: none; border-radius: 20px; background: var(--btn); color: #ffffff; display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 19px; font-weight: 700; box-shadow: 0 10px 22px -8px rgba(29,90,63,.55)">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>İhtiyaç Ekle</button>
+
+<sc-if value="{{showEmpty}}" hint-placeholder-val="{{ false }}">
+<div class="pop" style="margin-top: 16px; padding: 32px 24px; border-radius: 28px; background: var(--card); display: flex; flex-direction: column; align-items: center; text-align: center; box-shadow: 0 6px 24px -6px var(--shc)">
+<div class="floaty" style="width: 120px; height: 120px; border-radius: 50%; background: var(--well); display: flex; align-items: center; justify-content: center">
+<img src="../assets/logo-512.png" alt="" style="width: 76px; height: 76px; border-radius: 22px; display: block">
+</div>
+<h3 style="margin: 20px 0 6px; font-size: 22px; font-weight: 700">Hepsi alındı!</h3>
+<p style="margin: 0; max-width: 270px; font-size: calc(16px * var(--ts)); line-height: 1.5; color: var(--ink2)">Listede bekleyen ihtiyaç yok. Yeni bir şey lazım olunca yukarıdaki düğmeye basın.</p>
+</div>
+</sc-if>
+
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+<div class="rise" style="animation-delay: {{g.delay}}ms; margin: 24px 2px 10px; display: flex; align-items: center; gap: 12px">
+<span style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: {{g.bg}}; color: {{g.fg}}; display: flex; align-items: center; justify-content: center">
+<sc-if value="{{g.isFood}}" hint-placeholder-val="{{ true }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8c-2.2-2.8-7-1.8-7 3 0 5 3.2 10 7 10s7-5 7-10c0-4.8-4.8-5.8-7-3z"></path><path d="M12 8c0-2.2 1.2-4 3.5-4.5"></path></svg></sc-if>
+<sc-if value="{{g.isClean}}" hint-placeholder-val="{{ false }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 3l1.8 4.2L17 9l-4.2 1.8L11 15l-1.8-4.2L5 9l4.2-1.8z"></path><path d="M18 14l.9 2.1 2.1.9-2.1.9L18 20l-.9-2.1-2.1-.9 2.1-.9z"></path></svg></sc-if>
+<sc-if value="{{g.isCare}}" hint-placeholder-val="{{ false }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"></path></svg></sc-if>
+<sc-if value="{{g.isOther}}" hint-placeholder-val="{{ false }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"></path><path d="M4 8l8 4 8-4M12 12v8"></path></svg></sc-if>
+</span>
+<h3 style="margin: 0; flex: 1; font-size: calc(20px * var(--ts)); font-weight: 700">{{g.label}}</h3>
+<span style="height: 28px; min-width: 28px; padding: 0 10px; border-radius: 999px; background: var(--well); font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{g.count}}</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<sc-for list="{{g.items}}" as="it" hint-placeholder-count="2">
+<div class="{{it.cls}}" style="animation-delay: {{it.delay}}ms; display: flex; align-items: center; gap: 10px; min-height: 76px; padding: 10px 16px 10px 8px; border-radius: 20px; background: var(--card); box-shadow: 0 4px 18px -6px var(--shc)">
+<button onClick="{{it.toggle}}" aria-label="{{it.aria}}" style="width: 56px; height: 56px; flex-shrink: 0; padding: 0; border: none; background: transparent; display: flex; align-items: center; justify-content: center">
+<span class="cb" style="width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--reed); background: var(--card); display: flex; align-items: center; justify-content: center">
+<svg class="ck" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"></path></svg>
+</span>
+</button>
+<div style="flex: 1; min-width: 0">
+<div class="nm" style="font-size: calc(18px * var(--ts)); line-height: 1.3; font-weight: 700; color: var(--ink)">{{it.name}}</div>
+<div style="margin-top: 4px; font-size: calc(15px * var(--ts)); color: var(--ink2)">{{it.sub}}</div>
+</div>
+<sc-if value="{{it.urgent}}" hint-placeholder-val="{{ false }}">
+<span style="flex-shrink: 0; display: flex; align-items: center; gap: 4px; height: 30px; padding: 0 10px; border-radius: 999px; background: var(--peach); color: var(--peachfg); font-size: 14px; font-weight: 800">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21a6 6 0 0 0 6-6c0-4-3-6-4-10-1.5 2-2 3.5-2 5-1-1-1.5-2-1.5-3C8 9 6 11.5 6 15a6 6 0 0 0 6 6z"></path></svg>Acil</span>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</sc-for>
+
+<div class="rise d3" style="margin-top: 24px; padding: 6px; border-radius: 24px; background: var(--well)">
+<button onClick="{{toggleCompleted}}" aria-expanded="{{completedAria}}" style="width: 100%; height: 60px; border: none; background: transparent; display: flex; align-items: center; gap: 12px; padding: 0 14px; text-align: left; color: var(--ink)">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m8 12.5 2.8 2.8L16 10"></path></svg>
+<span style="font-size: calc(18px * var(--ts)); font-weight: 700">Alınanlar</span>
+<span style="height: 26px; min-width: 26px; padding: 0 8px; border-radius: 999px; background: var(--card); font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{doneCount}}</span>
+<span style="flex: 1"></span>
+<span style="font-size: 15px; font-weight: 600; color: var(--ink2)">{{completedHint}}</span>
+<svg class="chev" style="transform: rotate({{chevDeg}}deg)" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ink2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+</button>
+<sc-if value="{{completedOpen}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 2px 4px 6px">
+<sc-for list="{{doneItems}}" as="d" hint-placeholder-count="3">
+<div class="rise" style="animation-delay: {{d.delay}}ms; display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 6px 6px 6px 14px; border-radius: 16px; background: var(--card)">
+<span style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; background: var(--btn); display: flex; align-items: center; justify-content: center">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"></path></svg>
+</span>
+<span style="flex: 1; min-width: 0; font-size: calc(16px * var(--ts)); color: var(--ink2); text-decoration: line-through">{{d.name}}</span>
+<button class="press" onClick="{{d.restore}}" aria-label="{{d.aria}}" style="height: 48px; padding: 0 14px; border: none; border-radius: 12px; background: var(--well); display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; color: var(--brand)">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10a6 6 0 0 1 0 12h-3"></path></svg>Geri al</button>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+
+<!-- ---------- EV ---------- -->
+<sc-if value="{{isHome}}" hint-placeholder-val="{{ false }}">
+<div class="scroll scr" style="position: absolute; top: 68px; left: 0; right: 0; bottom: 0; overflow-y: auto; padding: 16px 20px 140px">
+<div class="rise" style="position: relative; overflow: hidden; padding: 22px; border-radius: 28px; background: var(--hero)">
+<span class="floaty" style="position: absolute; right: -30px; top: -30px; width: 130px; height: 130px; border-radius: 50%; background: var(--mint)"></span>
+<div style="position: relative; font-size: 15px; font-weight: 700; color: var(--mintfg)">Hoş geldiniz</div>
+<h2 style="position: relative; margin: 6px 0 6px; font-size: 28px; line-height: 34px; font-weight: 800; letter-spacing: -0.02em">Yılmaz Ailesi</h2>
+<p style="position: relative; margin: 0; font-size: calc(16px * var(--ts)); color: var(--ink2)">4 kişi aynı listeyi paylaşıyor</p>
+</div>
+
+<div class="rise d1" style="margin-top: 14px; display: flex; align-items: center; gap: 16px; padding: 18px; border-radius: 28px; background: var(--card); box-shadow: 0 6px 24px -6px var(--shc)">
+<div style="position: relative; width: 64px; height: 64px; flex-shrink: 0">
+<svg width="64" height="64" viewBox="0 0 60 60" aria-hidden="true"><circle cx="30" cy="30" r="24" fill="none" stroke="var(--well)" stroke-width="7"></circle><circle class="ring" cx="30" cy="30" r="24" fill="none" stroke="#f2a93b" stroke-width="7" stroke-linecap="round" stroke-dasharray="150.8" stroke-dashoffset="27.1" transform="rotate(-90 30 30)"></circle></svg>
+<span style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800">%82</span>
+</div>
+<div style="flex: 1; min-width: 0">
+<div style="font-size: 14px; font-weight: 700; color: var(--peachfg)">Bu hafta</div>
+<div style="margin-top: 2px; font-size: calc(18px * var(--ts)); font-weight: 700">18 ihtiyaç alındı</div>
+<div style="margin-top: 2px; font-size: calc(15px * var(--ts)); color: var(--ink2)">Listenin %82'si tamamlandı</div>
+</div>
+</div>
+
+<div class="rise d2" style="margin-top: 14px; padding: 20px; border-radius: 28px; background: var(--card); box-shadow: 0 6px 24px -6px var(--shc)">
+<h3 style="margin: 0; display: flex; align-items: center; gap: 10px; font-size: calc(19px * var(--ts)); font-weight: 700">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="4"></circle><path d="M3 21c1.2-3.6 3.8-5.5 7-5.5s5.8 1.9 7 5.5"></path><path d="M19 8v6M16 11h6"></path></svg>Aileyi davet et</h3>
+<p style="margin: 8px 0 14px; font-size: calc(16px * var(--ts)); line-height: 1.5; color: var(--ink2)">Bu kodu aile bireylerinize gönderin. Kodu girdiklerinde listenizi birlikte kullanırsınız.</p>
+<div style="padding: 16px; border-radius: 20px; background: var(--well); text-align: center">
+<div style="font-size: 14px; font-weight: 600; color: var(--ink2)">Ev kodunuz</div>
+<div style="margin-top: 4px; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 28px; font-weight: 800; letter-spacing: 0.08em">EV-8492-HL</div>
+</div>
+<div style="margin-top: 12px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<button class="press" onClick="{{copyCode}}" style="height: 56px; border: 2px solid var(--line); border-radius: 16px; background: {{copyBg}}; color: {{copyFg}}; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 17px; font-weight: 700">
+<sc-if value="{{copied}}" hint-placeholder-val="{{ false }}"><svg class="pop" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"></path></svg>Kopyalandı</sc-if>
+<sc-if value="{{notCopied}}" hint-placeholder-val="{{ true }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"></rect><path d="M5 15V6a2 2 0 0 1 2-2h8"></path></svg>Kopyala</sc-if>
+</button>
+<button class="press" style="height: 56px; border: none; border-radius: 16px; background: var(--btn); color: #ffffff; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 17px; font-weight: 700">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.5"></circle><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="19" r="2.5"></circle><path d="m8.2 10.8 7.6-4.4M8.2 13.2l7.6 4.4"></path></svg>Gönder</button>
+</div>
+</div>
+
+<div class="rise d3" style="margin: 26px 2px 12px; display: flex; align-items: center; gap: 10px">
+<h3 style="margin: 0; font-size: calc(20px * var(--ts)); font-weight: 700">Aile Bireyleri</h3>
+<span style="height: 28px; padding: 0 10px; border-radius: 999px; background: var(--well); font-size: 14px; font-weight: 700; display: flex; align-items: center">4 kişi</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<sc-for list="{{members}}" as="m" hint-placeholder-count="4">
+<div class="card rise" style="animation-delay: {{m.delay}}ms; display: flex; align-items: center; gap: 14px; min-height: 76px; padding: 12px 14px; border-radius: 20px; background: var(--card); box-shadow: 0 4px 18px -6px var(--shc)">
+<sc-if value="{{m.photo}}" hint-placeholder-val="{{ false }}"><img src="../assets/avatar-zeynep.jpg" alt="" style="width: 52px; height: 52px; flex-shrink: 0; border-radius: 50%; object-fit: cover; display: block"></sc-if>
+<sc-if value="{{m.noPhoto}}" hint-placeholder-val="{{ true }}"><span style="width: 52px; height: 52px; flex-shrink: 0; border-radius: 50%; background: {{m.avBg}}; color: {{m.avFg}}; font-size: 20px; font-weight: 800; display: flex; align-items: center; justify-content: center">{{m.initial}}</span></sc-if>
+<div style="flex: 1; min-width: 0">
+<div style="display: flex; align-items: baseline; gap: 6px"><span style="font-size: calc(18px * var(--ts)); font-weight: 700">{{m.name}}</span><span style="font-size: 14px; color: var(--ink2)">{{m.you}}</span></div>
+<div style="margin-top: 2px; font-size: calc(15px * var(--ts)); color: var(--ink2)">{{m.role}}</div>
+</div>
+</div>
+</sc-for>
+</div>
+
+<div class="rise d6" style="margin-top: 16px; display: flex; gap: 14px; padding: 18px; border-radius: 24px; background: var(--tip)">
+<span style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 50%; background: var(--peach); color: var(--peachfg); display: flex; align-items: center; justify-content: center">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>
+</span>
+<div>
+<div style="font-size: calc(17px * var(--ts)); font-weight: 700">İpucu: Sesle ekleyin</div>
+<div style="margin-top: 4px; font-size: calc(15px * var(--ts)); line-height: 1.5; color: var(--ink2)">Yazmak zor geliyorsa, ekleme ekranındaki mikrofona basıp “iki litre süt” demeniz yeterli.</div>
+</div>
+</div>
+</div>
+</sc-if>
+
+<!-- ---------- PROFİL ---------- -->
+<sc-if value="{{isProfile}}" hint-placeholder-val="{{ false }}">
+<div class="scroll scr" style="position: absolute; top: 68px; left: 0; right: 0; bottom: 0; overflow-y: auto; padding: 16px 20px 140px">
+<div class="rise" style="padding: 24px 20px 20px; border-radius: 28px; background: var(--card); display: flex; flex-direction: column; align-items: center; box-shadow: 0 6px 24px -6px var(--shc)">
+<div class="pop" style="position: relative; width: 108px; height: 108px">
+<img src="../assets/avatar-zeynep.jpg" alt="Zeynep Yılmaz" style="width: 108px; height: 108px; border-radius: 50%; object-fit: cover; display: block; border: 4px solid var(--well)">
+<button class="press" aria-label="Fotoğrafı değiştir" style="position: absolute; right: -6px; bottom: -6px; width: 48px; height: 48px; border: 3px solid var(--card); border-radius: 50%; background: var(--btn); display: flex; align-items: center; justify-content: center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"></path><circle cx="12" cy="13.5" r="3.5"></circle></svg>
+</button>
+</div>
+<div style="margin-top: 14px; font-size: 24px; font-weight: 800">Zeynep Yılmaz</div>
+<div style="margin-top: 2px; font-size: 16px; color: var(--ink2)">zeynep.yilmaz@gmail.com</div>
+<span style="margin-top: 12px; height: 34px; padding: 0 16px; border-radius: 999px; background: var(--mint); color: var(--mintfg); font-size: 15px; font-weight: 700; display: flex; align-items: center">Ev yöneticisi</span>
+<div style="margin-top: 18px; width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 14px 8px; border-radius: 20px; background: var(--soft); text-align: center">
+<div><div style="font-size: 26px; font-weight: 800; color: var(--brand)">{{statMembers}}</div><div style="font-size: 14px; color: var(--ink2)">Kişi</div></div>
+<div><div style="font-size: 26px; font-weight: 800; color: var(--peachfg)">{{statPending}}</div><div style="font-size: 14px; color: var(--ink2)">Bekleyen</div></div>
+<div><div style="font-size: 26px; font-weight: 800; color: var(--honeyfg)">{{statWeek}}</div><div style="font-size: 14px; color: var(--ink2)">Bu hafta</div></div>
+</div>
+</div>
+
+<h3 class="rise d1" style="margin: 26px 4px 10px; font-size: calc(18px * var(--ts)); font-weight: 700">Görünüm</h3>
+<div class="rise d1" style="padding: 16px; border-radius: 24px; background: var(--card); box-shadow: 0 6px 24px -6px var(--shc)">
+<div role="radiogroup" aria-label="Tema" style="position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 5px; border-radius: 20px; background: var(--well)">
+<span class="seg" style="position: absolute; top: 5px; left: 5px; width: calc(50% - 5px); height: calc(100% - 10px); border-radius: 16px; background: var(--card); box-shadow: 0 4px 14px -4px var(--shc); transform: translateX({{segX}}%)"></span>
+<button role="radio" aria-checked="{{lightAria}}" onClick="{{setLight}}" style="position: relative; height: 64px; border: none; background: transparent; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 17px; font-weight: 700; color: var(--ink)">
+<svg class="sunmoon" style="transform: rotate({{sunRot}}deg)" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e0932a" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>Aydınlık</button>
+<button role="radio" aria-checked="{{darkAria}}" onClick="{{setDark}}" style="position: relative; height: 64px; border: none; background: transparent; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 17px; font-weight: 700; color: var(--ink)">
+<svg class="sunmoon" style="transform: rotate({{moonRot}}deg)" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"></path></svg>Koyu</button>
+</div>
+<div style="margin-top: 14px; display: flex; align-items: center; gap: 14px; padding: 4px 2px 0">
+<span style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 50%; background: var(--well); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; color: var(--brand)">Aa</span>
+<div style="flex: 1; min-width: 0">
+<div style="font-size: calc(17px * var(--ts)); font-weight: 700">Büyük yazı</div>
+<div style="font-size: calc(14px * var(--ts)); color: var(--ink2)">Listeyi okumak kolaylaşır</div>
+</div>
+<button role="switch" aria-checked="{{bigAria}}" aria-label="Büyük yazı" onClick="{{toggleBig}}" style="position: relative; width: 64px; height: 38px; flex-shrink: 0; padding: 0; border: none; border-radius: 999px; background: {{bigBg}}">
+<span class="knob" style="position: absolute; left: 4px; top: 4px; width: 30px; height: 30px; border-radius: 50%; background: #ffffff; box-shadow: 0 1px 4px rgba(0,0,0,.2); transform: translateX({{bigX}}px)"></span>
+</button>
+</div>
+</div>
+
+<h3 class="rise d2" style="margin: 26px 4px 10px; font-size: calc(18px * var(--ts)); font-weight: 700">Bildirimler</h3>
+<div class="rise d2" style="padding: 4px 16px; border-radius: 24px; background: var(--card); box-shadow: 0 6px 24px -6px var(--shc)">
+<sc-for list="{{notifs}}" as="n" hint-placeholder-count="2">
+<div style="display: flex; align-items: center; gap: 14px; padding: 14px 0; border-top: 1px solid {{n.line}}">
+<div style="flex: 1; min-width: 0">
+<div style="font-size: calc(17px * var(--ts)); font-weight: 700">{{n.title}}</div>
+<div style="font-size: calc(14px * var(--ts)); line-height: 1.4; color: var(--ink2)">{{n.text}}</div>
+</div>
+<button role="switch" aria-checked="{{n.aria}}" aria-label="{{n.title}}" onClick="{{n.toggle}}" style="position: relative; width: 64px; height: 38px; flex-shrink: 0; padding: 0; border: none; border-radius: 999px; background: {{n.bg}}">
+<span class="knob" style="position: absolute; left: 4px; top: 4px; width: 30px; height: 30px; border-radius: 50%; background: #ffffff; box-shadow: 0 1px 4px rgba(0,0,0,.2); transform: translateX({{n.x}}px)"></span>
+</button>
+</div>
+</sc-for>
+</div>
+
+<h3 class="rise d3" style="margin: 26px 4px 10px; font-size: calc(18px * var(--ts)); font-weight: 700">Hesap</h3>
+<div class="rise d3" style="display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 24px; background: var(--card); box-shadow: 0 6px 24px -6px var(--shc)">
+<button class="press" onClick="{{goHome}}" style="height: 60px; border: none; border-radius: 16px; background: var(--well); display: flex; align-items: center; gap: 12px; padding: 0 16px; font-size: 17px; font-weight: 700; color: var(--ink); text-align: left">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c1-3.3 3.4-5 6.5-5s5.5 1.7 6.5 5"></path><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 15c2 .6 3.2 2.3 3.8 5"></path></svg>
+<span style="flex: 1">Aile üyelerini yönet</span>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ink2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg>
+</button>
+<button class="press" onClick="{{logout}}" style="height: 60px; border: none; border-radius: 16px; background: var(--well); display: flex; align-items: center; gap: 12px; padding: 0 16px; font-size: 17px; font-weight: 700; color: var(--ink); text-align: left">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"></path><path d="M10 16l-4-4 4-4M6 12h10"></path></svg>
+<span style="flex: 1">Çıkış yap</span>
+</button>
+<button class="press" style="height: 60px; border: none; border-radius: 16px; background: var(--dangerbg); display: flex; align-items: center; gap: 12px; padding: 0 16px; font-size: 17px; font-weight: 700; color: var(--dangerfg); text-align: left">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20z"></path><path d="M12 10v4M12 17h.01"></path></svg>
+<span style="flex: 1">Hesabı sil</span>
+</button>
+</div>
+<div class="rise d4" style="margin-top: 20px; text-align: center; font-size: 14px; color: var(--ink2)">Ev Hali v2.4.0</div>
+</div>
+</sc-if>
+
+<!-- ---------- BİLDİRİMLER ---------- -->
+<sc-if value="{{isNotifs}}" hint-placeholder-val="{{ false }}">
+<div class="scroll scr" style="position: absolute; top: 68px; left: 0; right: 0; bottom: 0; overflow-y: auto; padding: 12px 20px 140px">
+<div class="rise" style="display: flex; align-items: center; gap: 8px">
+<button class="press" onClick="{{goBack}}" style="height: 48px; margin-left: -8px; padding: 0 12px 0 6px; border: none; border-radius: 999px; background: transparent; display: flex; align-items: center; gap: 4px; font-size: 17px; font-weight: 700; color: var(--brand)">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"></path></svg>Geri</button>
+<span style="flex: 1"></span>
+<sc-if value="{{hasUnread}}" hint-placeholder-val="{{ true }}">
+<button class="press" onClick="{{markAllRead}}" style="height: 48px; padding: 0 16px; border: none; border-radius: 999px; background: var(--mint); color: var(--mintfg); font-size: 15px; font-weight: 700">Hepsini okudum</button>
+</sc-if>
+</div>
+<p class="rise d1" style="margin: 8px 2px 0; font-size: calc(17px * var(--ts)); color: var(--ink2)">{{notifSummary}}</p>
+
+<sc-for list="{{noteGroups}}" as="g" hint-placeholder-count="2">
+<h3 style="margin: 22px 4px 10px; font-size: calc(17px * var(--ts)); font-weight: 700">{{g.title}}</h3>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<sc-for list="{{g.items}}" as="n" hint-placeholder-count="3">
+<button class="note rise" onClick="{{n.open}}" style="animation-delay: {{n.delay}}ms; width: 100%; display: flex; align-items: flex-start; gap: 14px; padding: 16px; border: 2px solid {{n.border}}; border-radius: 20px; text-align: left; background: var(--card); color: var(--ink)">
+<span style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 50%; background: {{n.iconBg}}; color: {{n.iconFg}}; display: flex; align-items: center; justify-content: center; font-size: 19px; font-weight: 800">
+<sc-if value="{{n.isPerson}}" hint-placeholder-val="{{ true }}">{{n.initial}}</sc-if>
+<sc-if value="{{n.isCart}}" hint-placeholder-val="{{ false }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1 12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1z"></path><path d="M9 10V6a3 3 0 0 1 6 0v4"></path></svg></sc-if>
+<sc-if value="{{n.isClock}}" hint-placeholder-val="{{ false }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></sc-if>
+<sc-if value="{{n.isChart}}" hint-placeholder-val="{{ false }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m8 12.5 2.8 2.8L16 10"></path></svg></sc-if>
+</span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: calc(17px * var(--ts)); line-height: 1.4"><strong style="font-weight: 800">{{n.who}}</strong> {{n.text}}</span>
+<span style="font-size: calc(14px * var(--ts)); color: var(--ink2)">{{n.time}}</span>
+</span>
+<span class="udot" style="width: 12px; height: 12px; margin-top: 6px; flex-shrink: 0; border-radius: 50%; background: #b8532a; opacity: {{n.dotOp}}; transform: scale({{n.dotOp}})"></span>
+</button>
+</sc-for>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<!-- Alt gezinme -->
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 96px; z-index: 6; display: flex; align-items: flex-start; justify-content: space-between; padding: 10px 28px 0; border-radius: 28px 28px 0 0; background: var(--nav); box-shadow: 0 -8px 30px -8px var(--shc)">
+<button onClick="{{goHome}}" style="width: 84px; height: 66px; padding: 0; border: none; background: transparent; display: flex; flex-direction: column; align-items: center; gap: 4px; color: {{navHome.fg}}">
+<span class="navpill" style="width: {{navHome.w}}px; height: 36px; border-radius: 999px; background: {{navHome.bg}}; display: flex; align-items: center; justify-content: center">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"></path></svg>
+</span>
+<span style="font-size: 15px; font-weight: 700">Ev</span>
+</button>
+<div style="width: 100px; display: flex; flex-direction: column; align-items: center">
+<button class="fab" onClick="{{goList}}" aria-label="Alışveriş listesi" style="margin-top: -40px; width: 70px; height: 70px; padding: 0; border: 5px solid var(--bg); border-radius: 50%; background: var(--btn); display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 22px -6px rgba(29,90,63,.55); transform: scale({{fabScale}})">
+<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 10h14l-1.4 9.1a2 2 0 0 1-2 1.9H8.4a2 2 0 0 1-2-1.9z"></path><path d="M9 10 12 4l3 6"></path><path d="M3 10h18"></path><path d="M10 14v3M14 14v3"></path></svg>
+</button>
+<span style="margin-top: 4px; font-size: 15px; font-weight: 700; color: {{navList.fg}}">Liste</span>
+</div>
+<button onClick="{{goProfile}}" style="width: 84px; height: 66px; padding: 0; border: none; background: transparent; display: flex; flex-direction: column; align-items: center; gap: 4px; color: {{navProfile.fg}}">
+<span class="navpill" style="width: {{navProfile.w}}px; height: 36px; border-radius: 999px; background: {{navProfile.bg}}; display: flex; align-items: center; justify-content: center">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg>
+</span>
+<span style="font-size: 15px; font-weight: 700">Profil</span>
+</button>
+</div>
+
+<!-- İhtiyaç ekle alt sayfası -->
+<sc-if value="{{sheetOpen}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; z-index: 20">
+<button class="{{backdropCls}}" onClick="{{closeSheet}}" aria-label="Kapat" style="position: absolute; inset: 0; width: 100%; border: none; padding: 0; background: var(--scrim); backdrop-filter: blur(5px)"></button>
+<div class="{{sheetCls}}" role="dialog" aria-label="İhtiyaç ekle" style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 20px 22px; border-radius: 32px 32px 0 0; background: var(--bg); box-shadow: 0 -12px 40px -8px var(--shc)">
+<div style="width: 48px; height: 5px; margin: 0 auto 12px; border-radius: 999px; background: var(--reed)"></div>
+<div style="display: flex; align-items: center; justify-content: space-between">
+<h2 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em">İhtiyaç Ekle</h2>
+<button class="press" onClick="{{closeSheet}}" style="height: 48px; padding: 0 14px 0 10px; border: none; border-radius: 999px; background: var(--well2); display: flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 700; color: var(--ink)">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>Kapat</button>
+</div>
+
+<label for="eh-name" style="display: block; margin-top: 14px; font-size: 16px; font-weight: 700">Ne lazım?</label>
+<div class="{{inputCls}}" style="margin-top: 8px; height: 60px; display: flex; align-items: center; gap: 6px; padding: 0 6px 0 16px; border-radius: 18px; border: 2px solid var(--reed); background: var(--card); transition: border-color .2s">
+<input id="eh-name" value="{{formName}}" onChange="{{onName}}" onKeyDown="{{onKey}}" placeholder="Örneğin: Süt" style="flex: 1; min-width: 0; height: 100%; border: none; background: transparent; font-family: inherit; font-size: 19px; color: var(--ink)">
+<button aria-label="Sesle söyle" style="width: 48px; height: 48px; border: none; border-radius: 14px; background: var(--mint); color: var(--mintfg); display: flex; align-items: center; justify-content: center">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>
+</button>
+</div>
+<div class="hs" style="margin: 10px -20px 0; padding: 0 20px; display: flex; gap: 8px; overflow-x: auto">
+<sc-for list="{{freq}}" as="f" hint-placeholder-count="5">
+<button class="press" onClick="{{f.pick}}" style="flex-shrink: 0; height: 44px; padding: 0 16px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--card); font-size: 16px; font-weight: 600; color: var(--ink)">{{f.label}}</button>
+</sc-for>
+</div>
+
+<div style="margin-top: 16px; font-size: 16px; font-weight: 700">Ne kadar?</div>
+<div style="position: relative; margin-top: 8px; display: flex; align-items: center; gap: 10px">
+<div style="display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 18px; background: var(--well2)">
+<button class="press" onClick="{{dec}}" aria-label="Azalt" style="width: 52px; height: 52px; border: none; border-radius: 14px; background: var(--card); display: flex; align-items: center; justify-content: center; color: var(--ink)">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg></button>
+<span style="width: 44px; text-align: center; font-size: 22px; font-weight: 800" aria-live="polite">{{qty}}</span>
+<button class="press" onClick="{{inc}}" aria-label="Arttır" style="width: 52px; height: 52px; border: none; border-radius: 14px; background: var(--card); display: flex; align-items: center; justify-content: center; color: var(--ink)">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+</div>
+<button class="press" onClick="{{toggleUnits}}" aria-haspopup="listbox" aria-expanded="{{unitsAria}}" style="flex: 1; min-width: 0; height: 60px; padding: 0 14px 0 16px; border: 2px solid {{unitBorder}}; border-radius: 18px; background: var(--card); display: flex; align-items: center; justify-content: space-between; font-size: 18px; font-weight: 700; color: var(--ink)">
+<span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{unit}}</span>
+<svg class="chev" style="flex-shrink: 0; transform: rotate({{unitChev}}deg)" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+</button>
+<sc-if value="{{unitsOpen}}" hint-placeholder-val="{{ false }}">
+<div class="drop" role="listbox" aria-label="Birim seçin" style="position: absolute; right: 0; top: 68px; z-index: 5; width: 220px; padding: 6px; border-radius: 20px; background: var(--card); border: 1px solid var(--line); box-shadow: 0 18px 40px -10px rgba(0,0,0,.3)">
+<sc-for list="{{units}}" as="u" hint-placeholder-count="6">
+<button role="option" aria-selected="{{u.aria}}" onClick="{{u.pick}}" style="width: 100%; height: 52px; padding: 0 14px; border: none; border-radius: 14px; background: {{u.bg}}; display: flex; align-items: center; justify-content: space-between; font-size: 17px; font-weight: {{u.weight}}; color: {{u.fg}}; text-align: left">
+<span>{{u.label}}</span>
+<sc-if value="{{u.on}}" hint-placeholder-val="{{ false }}"><svg class="pop" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"></path></svg></sc-if>
+</button>
+</sc-for>
+</div>
+</sc-if>
+</div>
+
+<div style="margin-top: 16px; font-size: 16px; font-weight: 700">Hangi bölüm?</div>
+<div role="radiogroup" aria-label="Bölüm" style="margin-top: 8px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{sheetCats}}" as="c" hint-placeholder-count="4">
+<button class="press" role="radio" aria-checked="{{c.aria}}" onClick="{{c.pick}}" style="height: 58px; padding: 0 12px; border-radius: 16px; border: 2px solid {{c.border}}; background: {{c.bg}}; display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 700; color: var(--ink); text-align: left">
+<span style="width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; background: {{c.iconBg}}; color: {{c.iconFg}}; display: flex; align-items: center; justify-content: center">
+<sc-if value="{{c.isFood}}" hint-placeholder-val="{{ true }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8c-2.2-2.8-7-1.8-7 3 0 5 3.2 10 7 10s7-5 7-10c0-4.8-4.8-5.8-7-3z"></path><path d="M12 8c0-2.2 1.2-4 3.5-4.5"></path></svg></sc-if>
+<sc-if value="{{c.isClean}}" hint-placeholder-val="{{ false }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 3l1.8 4.2L17 9l-4.2 1.8L11 15l-1.8-4.2L5 9l4.2-1.8z"></path><path d="M18 14l.9 2.1 2.1.9-2.1.9L18 20l-.9-2.1-2.1-.9 2.1-.9z"></path></svg></sc-if>
+<sc-if value="{{c.isCare}}" hint-placeholder-val="{{ false }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"></path></svg></sc-if>
+<sc-if value="{{c.isOther}}" hint-placeholder-val="{{ false }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"></path><path d="M4 8l8 4 8-4M12 12v8"></path></svg></sc-if>
+</span>
+<span style="flex: 1">{{c.label}}</span>
+</button>
+</sc-for>
+</div>
+
+<div style="margin-top: 12px; display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: 20px; border: 1px solid var(--line); background: var(--card)">
+<span style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 14px; background: var(--peach); display: flex; align-items: center; justify-content: center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="#c46234" aria-hidden="true"><path d="M12 21a6 6 0 0 0 6-6c0-4-3-6-4-10-1.5 2-2 3.5-2 5-1-1-1.5-2-1.5-3C8 9 6 11.5 6 15a6 6 0 0 0 6 6z"></path></svg>
+</span>
+<div style="flex: 1; min-width: 0">
+<div style="font-size: 16px; font-weight: 700">Acil İhtiyaç</div>
+<div style="font-size: 14px; color: var(--ink2)">Markete giden ilk kişi hemen görsün</div>
+</div>
+<button role="switch" aria-checked="{{urgentAria}}" aria-label="Acil ihtiyaç" onClick="{{toggleUrgent}}" style="position: relative; width: 56px; height: 34px; flex-shrink: 0; padding: 0; border: none; border-radius: 999px; background: {{urgentBg}}; transition: background-color .25s ease">
+<span class="knob" style="position: absolute; left: 4px; top: 4px; width: 26px; height: 26px; border-radius: 50%; background: #ffffff; box-shadow: 0 1px 4px rgba(0,0,0,.15); transform: translateX({{urgentX}}px)"></span>
+</button>
+</div>
+
+<button class="press" onClick="{{addItem}}" style="margin-top: 16px; width: 100%; height: 62px; border: none; border-radius: 20px; background: var(--btn); color: #ffffff; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 19px; font-weight: 800; box-shadow: 0 10px 22px -8px rgba(29,90,63,.6)">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Listeye Ekle</button>
+</div>
+</div>
+</sc-if>
+
+</div>
+</sc-if>
+
+<!-- Bildirim -->
+<sc-if value="{{hasToast}}" hint-placeholder-val="{{ false }}">
+<div class="toast" role="status" style="position: absolute; left: 50%; bottom: 112px; z-index: 40; display: flex; align-items: center; gap: 10px; max-width: 350px; padding: 14px 20px 14px 14px; border-radius: 999px; background: var(--toastbg); color: var(--toastfg); font-size: 16px; font-weight: 700; white-space: nowrap; box-shadow: 0 12px 30px -8px rgba(0,0,0,.35)">
+<span style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; background: #f2a93b; display: flex; align-items: center; justify-content: center">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1f2a24" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"></path></svg>
+</span>
+<span style="overflow: hidden; text-overflow: ellipsis">{{toast}}</span>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"startScreen":{"editor":"enum","options":["login","list","add","home","profile","notifs"],"default":"login","section":"Prototip"},"theme":{"editor":"enum","options":["light","dark"],"default":"light","section":"Prototip"},"$preview":{"width":390,"height":844}}'>
+var EH_PEOPLE = {
+  Z: { name: 'Zeynep' }, E: { name: 'Emre' }, D: { name: 'Defne' }
+};
+var EH_CATS = [
+  { key: 'food', label: 'Gıda', bg: 'var(--honey)', fg: 'var(--honeyfg)' },
+  { key: 'clean', label: 'Temizlik', bg: 'var(--sky)', fg: 'var(--skyfg)' },
+  { key: 'care', label: 'Kişisel Bakım', bg: 'var(--peach)', fg: 'var(--peachfg)' },
+  { key: 'other', label: 'Diğer', bg: 'var(--well2)', fg: 'var(--ink2)' }
+];
+var EH_UNITS = [
+  { label: 'Adet', short: 'adet' },
+  { label: 'Kilogram (kg)', short: 'kg' },
+  { label: 'Gram (g)', short: 'g' },
+  { label: 'Litre', short: 'litre' },
+  { label: 'Paket', short: 'paket' },
+  { label: 'Kutu', short: 'kutu' }
+];
+var EH_FREQ = [
+  { label: 'Ekmek', cat: 'food' }, { label: 'Süt', cat: 'food' }, { label: 'Yumurta', cat: 'food' },
+  { label: 'Peçete', cat: 'clean' }, { label: 'Deterjan', cat: 'clean' }, { label: 'Şampuan', cat: 'care' }
+];
+function ehItems() {
+  return [
+    { id: 'a1', name: 'Sızma Zeytinyağı', cat: 'food', by: 'Z', urgent: true, amount: '1 litre', done: false },
+    { id: 'a2', name: 'Tam Yağlı Süt', cat: 'food', by: 'Z', urgent: false, amount: '2 adet', done: false },
+    { id: 'a3', name: 'Köy Yumurtası', cat: 'food', by: 'E', urgent: false, amount: '15 adet', done: false },
+    { id: 'a4', name: 'Bulaşık Tableti', cat: 'clean', by: 'D', urgent: false, amount: '1 paket', done: false },
+    { id: 'a5', name: 'Diş Macunu', cat: 'care', by: 'D', urgent: false, amount: '', done: false },
+    { id: 'b1', name: 'Domates', cat: 'food', by: 'E', urgent: false, amount: '1 kg', done: true },
+    { id: 'b2', name: 'Filtre Kahve', cat: 'food', by: 'Z', urgent: false, amount: '', done: true },
+    { id: 'b3', name: 'Köy Ekmeği', cat: 'food', by: 'D', urgent: false, amount: '', done: true }
+  ];
+}
+function ehNotes() {
+  return [
+    { id: 'n1', day: 'today', kind: 'cart', who: 'Emre', text: 'Köy Ekmeği’ni aldı.', time: '10 dakika önce', read: false },
+    { id: 'n2', day: 'today', kind: 'person', by: 'D', who: 'Defne', text: 'listeye Diş Macunu ekledi.', time: '25 dakika önce', read: false },
+    { id: 'n3', day: 'today', kind: 'clock', who: 'Hatırlatma:', text: 'Pazar alışverişi bugün saat 17:00’de.', time: '1 saat önce', read: false },
+    { id: 'n4', day: 'yesterday', kind: 'person', by: 'S', who: 'Selin Teyze', text: 'evinize katıldı.', time: 'Dün, 20:14', read: true },
+    { id: 'n5', day: 'yesterday', kind: 'chart', who: 'Haftalık özet:', text: 'bu hafta 18 ihtiyaç alındı.', time: 'Dün, 09:00', read: true }
+  ];
+}
+function ehForm() { return { name: '', qty: 1, unitIdx: 0, cat: 'food', urgent: false }; }
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.timers = [];
+    this.toastKey = 0;
+    var s = (props && props.startScreen) || 'login';
+    this.state = {
+      screen: s === 'add' ? 'list' : s, prevScreen: 'list',
+      sheetOpen: s === 'add', sheetClosing: false, unitsOpen: false,
+      loggingIn: false, items: ehItems(), completedOpen: false,
+      flashId: null, checking: {}, toast: null, bump: false,
+      copied: false, dark: (props && props.theme) === 'dark', big: false,
+      notifNew: true, notifBought: true, notes: ehNotes(),
+      statP: 1, shake: false, form: ehForm()
+    };
+  }
+  componentDidUpdate(prev) {
+    if (prev.startScreen !== this.props.startScreen && this.props.startScreen) {
+      var s = this.props.startScreen;
+      this.setState({ screen: s === 'add' ? 'list' : s, sheetOpen: s === 'add', sheetClosing: false });
+    }
+    if (prev.theme !== this.props.theme) this.setState({ dark: this.props.theme === 'dark' });
+  }
+  componentWillUnmount() {
+    this.timers.forEach(function (t) { clearTimeout(t); });
+    if (this.raf) cancelAnimationFrame(this.raf);
+  }
+  later(fn, ms) { this.timers.push(setTimeout(fn, ms)); }
+  go(screen) {
+    var cur = this.state.screen;
+    this.setState({ screen: screen, sheetOpen: false, sheetClosing: false, unitsOpen: false, prevScreen: cur === 'notifs' ? this.state.prevScreen : cur });
+    if (screen === 'profile') this.runStats();
+  }
+  runStats() {
+    var self = this;
+    if (this.raf) cancelAnimationFrame(this.raf);
+    var t0 = null;
+    var step = function (now) {
+      if (t0 === null) t0 = now;
+      var p = Math.min(1, (now - t0) / 900);
+      self.setState({ statP: 1 - Math.pow(1 - p, 3) });
+      if (p < 1) self.raf = requestAnimationFrame(step);
+    };
+    this.setState({ statP: 0 });
+    this.raf = requestAnimationFrame(step);
+  }
+  showToast(msg) {
+    var self = this;
+    var k = ++this.toastKey;
+    this.setState({ toast: null });
+    this.later(function () { if (self.toastKey === k) self.setState({ toast: msg }); }, 40);
+    this.later(function () { if (self.toastKey === k) self.setState({ toast: null }); }, 2700);
+  }
+  bumpCount() {
+    var self = this;
+    this.setState({ bump: false });
+    this.later(function () { self.setState({ bump: true }); }, 20);
+    this.later(function () { self.setState({ bump: false }); }, 560);
+  }
+  checkItem(id) {
+    var self = this;
+    if (this.state.checking[id]) return;
+    this.setState(function (s) { var c = Object.assign({}, s.checking); c[id] = true; return { checking: c, flashId: null }; });
+    this.later(function () {
+      self.setState(function (s) {
+        var c = Object.assign({}, s.checking); delete c[id];
+        return { checking: c, items: s.items.map(function (i) { return i.id === id ? Object.assign({}, i, { done: true }) : i; }) };
+      });
+      self.bumpCount();
+    }, 600);
+  }
+  restoreItem(id) {
+    this.setState(function (s) {
+      var it = null;
+      var rest = s.items.filter(function (i) { if (i.id === id) { it = i; return false; } return true; });
+      if (!it) return {};
+      return { items: [Object.assign({}, it, { done: false })].concat(rest), flashId: id };
+    });
+    this.bumpCount();
+  }
+  setForm(patch) { this.setState(function (s) { return { form: Object.assign({}, s.form, patch) }; }); }
+  openSheet() { this.setState({ sheetOpen: true, sheetClosing: false, unitsOpen: false }); }
+  closeSheet() {
+    var self = this;
+    if (!this.state.sheetOpen || this.state.sheetClosing) return;
+    this.setState({ sheetClosing: true, unitsOpen: false });
+    this.later(function () { self.setState({ sheetOpen: false, sheetClosing: false }); }, 260);
+  }
+  addItem() {
+    var self = this;
+    var f = this.state.form;
+    var name = (f.name || '').trim();
+    if (!name) {
+      this.setState({ shake: true });
+      this.later(function () { self.setState({ shake: false }); }, 460);
+      return;
+    }
+    var id = 'n' + Date.now();
+    var item = { id: id, name: name, cat: f.cat, by: 'Z', urgent: f.urgent, amount: f.qty + ' ' + EH_UNITS[f.unitIdx].short, done: false };
+    this.setState(function (s) { return { items: [item].concat(s.items), flashId: id, form: ehForm(), screen: 'list' }; });
+    this.closeSheet();
+    this.bumpCount();
+    this.showToast(name + ' listeye eklendi');
+  }
+  login() {
+    var self = this;
+    if (this.state.loggingIn) return;
+    this.setState({ loggingIn: true });
+    this.later(function () {
+      self.setState({ loggingIn: false, screen: 'list' });
+      self.showToast('Hoş geldiniz, Zeynep Hanım');
+    }, 1300);
+  }
+  copyCode() {
+    var self = this;
+    try { if (navigator.clipboard) navigator.clipboard.writeText('EV-8492-HL').catch(function () {}); } catch (e) {}
+    this.setState({ copied: true });
+    this.later(function () { self.setState({ copied: false }); }, 1800);
+  }
+  tg(on) { return { bg: on ? 'var(--btn)' : 'var(--reed)', x: on ? 26 : 0, aria: on ? 'true' : 'false' }; }
+  catIcons(key) { return { isFood: key === 'food', isClean: key === 'clean', isCare: key === 'care', isOther: key === 'other' }; }
+  renderVals() {
+    var self = this;
+    var s = this.state;
+    var f = s.form;
+    var screen = s.screen;
+    var isApp = screen !== 'login';
+    var active = s.items.filter(function (i) { return !i.done; });
+    var done = s.items.filter(function (i) { return i.done; });
+    var total = active.length + done.length;
+    var pct = total ? Math.round(done.length / total * 100) : 0;
+
+    var di = 0;
+    var groups = EH_CATS.map(function (c, gi) {
+      var list = active.filter(function (i) { return i.cat === c.key; });
+      list = list.filter(function (i) { return i.urgent; }).concat(list.filter(function (i) { return !i.urgent; }));
+      return Object.assign({
+        label: c.label, bg: c.bg, fg: c.fg, count: list.length, delay: 100 + gi * 60,
+        items: list.map(function (it) {
+          var p = EH_PEOPLE[it.by];
+          var cls = 'card rise';
+          if (s.flashId === it.id) cls += ' flash';
+          if (s.checking[it.id]) cls += ' checking';
+          var sub = [it.amount, p ? p.name + ' ekledi' : ''].filter(Boolean).join(' · ');
+          return {
+            name: it.name, urgent: !!it.urgent, sub: sub, cls: cls, delay: 140 + Math.min(di++, 8) * 70,
+            aria: it.name + ': aldım olarak işaretle',
+            toggle: function () { self.checkItem(it.id); }
+          };
+        })
+      }, self.catIcons(c.key));
+    }).filter(function (g) { return g.count > 0; });
+
+    var doneItems = done.map(function (it, idx) {
+      return { name: it.name, delay: idx * 60, aria: it.name + ' listeye geri al', restore: function () { self.restoreItem(it.id); } };
+    });
+
+    var sheetCats = EH_CATS.map(function (c) {
+      var on = f.cat === c.key;
+      return Object.assign({
+        label: c.label, iconBg: c.bg, iconFg: c.fg, aria: on ? 'true' : 'false',
+        bg: on ? 'var(--mint)' : 'var(--card)', border: on ? 'var(--brand)' : 'var(--line)',
+        pick: function () { self.setForm({ cat: c.key }); }
+      }, self.catIcons(c.key));
+    });
+    var freq = EH_FREQ.map(function (q) { return { label: q.label, pick: function () { self.setForm({ name: q.label, cat: q.cat }); } }; });
+    var units = EH_UNITS.map(function (u, i) {
+      var on = f.unitIdx === i;
+      return {
+        label: u.label, on: on, aria: on ? 'true' : 'false',
+        bg: on ? 'var(--mint)' : 'transparent', fg: on ? 'var(--mintfg)' : 'var(--ink)', weight: on ? 800 : 600,
+        pick: function () { self.setState(function (st) { return { unitsOpen: false, form: Object.assign({}, st.form, { unitIdx: i }) }; }); }
+      };
+    });
+    var ug = this.tg(f.urgent);
+
+    var nav = function (key) {
+      var on = screen === key;
+      return { fg: on ? 'var(--brand)' : 'var(--ink2)', bg: on ? 'var(--mint)' : 'transparent', w: on ? 64 : 40 };
+    };
+
+    var members = [
+      { name: 'Zeynep Yılmaz', you: '(Siz)', photo: true, initial: 'Z', avBg: 'var(--peach)', avFg: 'var(--peachfg)', role: 'Ev yöneticisi' },
+      { name: 'Emre Yılmaz', you: '', photo: false, initial: 'E', avBg: 'var(--mint)', avFg: 'var(--mintfg)', role: 'Üye' },
+      { name: 'Defne Yılmaz', you: '', photo: false, initial: 'D', avBg: 'var(--honey)', avFg: 'var(--honeyfg)', role: 'Üye (çocuk)' },
+      { name: 'Selin Teyze', you: '', photo: false, initial: 'S', avBg: 'var(--sky)', avFg: 'var(--skyfg)', role: 'Misafir · sadece görüntüler' }
+    ].map(function (m, i) { return Object.assign({ noPhoto: !m.photo, delay: 200 + i * 90 }, m); });
+
+    var notifs = [
+      Object.assign({ title: 'Yeni eklenenler', text: 'Listeye bir şey eklenince haber ver', line: 'transparent', toggle: function () { self.setState({ notifNew: !s.notifNew }); } }, this.tg(s.notifNew)),
+      Object.assign({ title: 'Alınanlar', text: 'Biri bir şeyi aldığında haber ver', line: 'var(--line)', toggle: function () { self.setState({ notifBought: !s.notifBought }); } }, this.tg(s.notifBought))
+    ];
+
+    var unread = s.notes.filter(function (n) { return !n.read; }).length;
+    var ni = 0;
+    var noteGroups = [{ key: 'today', title: 'Bugün' }, { key: 'yesterday', title: 'Dün' }].map(function (g) {
+      return {
+        title: g.title,
+        items: s.notes.filter(function (n) { return n.day === g.key; }).map(function (n) {
+          var look = n.kind === 'cart' ? ['var(--mint)', 'var(--mintfg)'] : n.kind === 'clock' ? ['var(--honey)', 'var(--honeyfg)'] : n.kind === 'chart' ? ['var(--hero)', 'var(--brand)'] : n.by === 'D' ? ['var(--honey)', 'var(--honeyfg)'] : ['var(--sky)', 'var(--skyfg)'];
+          return {
+            who: n.who, text: n.text, time: n.time, initial: n.by || '',
+            border: n.read ? 'var(--line)' : 'var(--brand)',
+            iconBg: look[0], iconFg: look[1],
+            isPerson: n.kind === 'person', isCart: n.kind === 'cart', isClock: n.kind === 'clock', isChart: n.kind === 'chart',
+            dotOp: n.read ? 0 : 1, delay: 120 + (ni++) * 70,
+            open: function () { self.setState(function (st) { return { notes: st.notes.map(function (x) { return x.id === n.id ? Object.assign({}, x, { read: true }) : x; }) }; }); }
+          };
+        })
+      };
+    }).filter(function (g) { return g.items.length > 0; });
+
+    var onNotifs = screen === 'notifs';
+    var titles = { list: 'Alışveriş Listesi', home: 'Evim', profile: 'Profilim', notifs: 'Bildirimler' };
+    return {
+      rootCls: 'eh' + (s.dark ? ' dark' : '') + (s.big ? ' big' : ''),
+      isLogin: screen === 'login', isApp: isApp,
+      isList: screen === 'list', isHome: screen === 'home', isProfile: screen === 'profile', isNotifs: onNotifs,
+      headerTitle: titles[screen] || '',
+      loggingIn: s.loggingIn, notLoggingIn: !s.loggingIn,
+      login: function () { self.login(); },
+      goHome: function () { self.go('home'); },
+      goProfile: function () { self.go('profile'); },
+      goList: function () { self.go('list'); },
+      goNotifs: function () { if (onNotifs) self.go(s.prevScreen || 'list'); else self.go('notifs'); },
+      goBack: function () { self.go(s.prevScreen || 'list'); },
+      fabScale: screen === 'list' ? 1.06 : 1,
+      navHome: nav('home'), navProfile: nav('profile'), navList: nav('list'),
+
+      hasUnread: unread > 0, unreadCount: unread,
+      bellAria: unread > 0 ? 'Bildirimler, ' + unread + ' yeni' : 'Bildirimler',
+      bellBg: onNotifs ? 'var(--mint)' : 'transparent',
+      bellCls: unread > 0 ? 'ring-bell' : '',
+      markAllRead: function () { self.setState(function (st) { return { notes: st.notes.map(function (x) { return Object.assign({}, x, { read: true }); }) }; }); },
+      notifSummary: unread > 0 ? unread + ' yeni bildiriminiz var.' : 'Hepsini okudunuz.',
+      noteGroups: noteGroups,
+
+      pendingCount: active.length,
+      countCls: s.bump ? 'bump' : '',
+      progressPct: pct,
+      progressText: done.length + ' / ' + total + ' alındı',
+      progressHint: active.length === 0 ? 'Harika! Listedeki her şey alındı.' : 'Aldığınız ürünün yanındaki yuvarlağa dokunun.',
+      showEmpty: active.length === 0,
+      groups: groups,
+      doneItems: doneItems, doneCount: done.length,
+      completedOpen: s.completedOpen, completedAria: s.completedOpen ? 'true' : 'false',
+      completedHint: s.completedOpen ? 'Gizle' : 'Göster',
+      chevDeg: s.completedOpen ? 180 : 0,
+      toggleCompleted: function () { self.setState({ completedOpen: !s.completedOpen }); },
+      openSheet: function () { self.openSheet(); },
+      closeSheet: function () { self.closeSheet(); },
+
+      sheetOpen: isApp && s.sheetOpen,
+      sheetCls: 'sheet' + (s.sheetClosing ? ' out' : ''),
+      backdropCls: 'backdrop' + (s.sheetClosing ? ' out' : ''),
+      inputCls: 'field' + (s.shake ? ' shake' : ''),
+      formName: f.name,
+      onName: function (e) { self.setForm({ name: e.target.value }); },
+      onKey: function (e) { if (e.key === 'Enter') self.addItem(); },
+      qty: f.qty,
+      dec: function () { self.setForm({ qty: Math.max(1, f.qty - 1) }); },
+      inc: function () { self.setForm({ qty: Math.min(99, f.qty + 1) }); },
+      unit: EH_UNITS[f.unitIdx].label,
+      units: units, unitsOpen: s.unitsOpen, unitsAria: s.unitsOpen ? 'true' : 'false',
+      unitChev: s.unitsOpen ? 180 : 0, unitBorder: s.unitsOpen ? 'var(--brand)' : 'var(--reed)',
+      toggleUnits: function () { self.setState({ unitsOpen: !s.unitsOpen }); },
+      freq: freq, sheetCats: sheetCats,
+      urgentBg: f.urgent ? '#c46234' : 'var(--reed)', urgentX: f.urgent ? 22 : 0, urgentAria: ug.aria,
+      toggleUrgent: function () { self.setForm({ urgent: !f.urgent }); },
+      addItem: function () { self.addItem(); },
+
+      copied: s.copied, notCopied: !s.copied,
+      copyBg: s.copied ? 'var(--mint)' : 'var(--card)', copyFg: s.copied ? 'var(--mintfg)' : 'var(--ink)',
+      copyCode: function () { self.copyCode(); },
+      members: members,
+
+      statMembers: Math.round(4 * s.statP),
+      statPending: Math.round(active.length * s.statP),
+      statWeek: Math.round(18 * s.statP),
+      segX: s.dark ? 100 : 0,
+      sunRot: s.dark ? -90 : 0, moonRot: s.dark ? 0 : 60,
+      lightAria: s.dark ? 'false' : 'true', darkAria: s.dark ? 'true' : 'false',
+      setLight: function () { self.setState({ dark: false }); },
+      setDark: function () { self.setState({ dark: true }); },
+      bigBg: s.big ? 'var(--btn)' : 'var(--reed)', bigX: s.big ? 26 : 0, bigAria: s.big ? 'true' : 'false',
+      toggleBig: function () { self.setState({ big: !s.big }); },
+      notifs: notifs,
+      logout: function () { self.setState({ screen: 'login', loggingIn: false, sheetOpen: false }); },
+
+      hasToast: !!s.toast, toast: s.toast || ''
+    };
+  }
+}
+</script>
+</body>
+</html>

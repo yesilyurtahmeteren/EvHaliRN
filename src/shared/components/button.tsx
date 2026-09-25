@@ -1,79 +1,111 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import type { ComponentProps } from 'react';
-import { Pressable, View, type PressableProps } from 'react-native';
+import type { ReactNode } from 'react';
+import type { PressableProps } from 'react-native';
 
-import { useAppTheme } from '@/shared/theme/theme-provider';
+import { fixedColors } from '@/shared/theme';
+import type { ColorValue } from '@/shared/theme/use-theme-color';
 
 import { AppText } from './app-text';
-import { LoadingBar } from './loading-bar';
+import { Icon, type IconName } from './icon';
+import { PressScale } from './press-scale';
+import { Spinner } from './spinner';
 
-export type ButtonVariant = 'filled' | 'secondary' | 'text';
-type IconName = ComponentProps<typeof MaterialIcons>['name'];
+export type ButtonVariant = 'primary' | 'outline' | 'well' | 'danger' | 'mint';
+
+const look: Record<ButtonVariant, { bg: ColorValue; fg: ColorValue; border?: ColorValue }> = {
+  // "İhtiyaç Ekle", "Listeye Ekle", "Gönder"
+  primary: { bg: 'btn', fg: fixedColors.onBtn },
+  // "Kopyala", "Google ile Giriş Yap"
+  outline: { bg: 'card', fg: 'ink', border: 'line' },
+  // Profil > Hesap satırları, "Kapat"
+  well: { bg: 'well', fg: 'ink' },
+  danger: { bg: 'dangerBg', fg: 'dangerFg' },
+  mint: { bg: 'mint', fg: 'mintFg' },
+};
 
 export type ButtonProps = Omit<PressableProps, 'children' | 'style'> & {
   label: string;
   variant?: ButtonVariant;
   icon?: IconName;
-  // Flutter'daki desen: işlem sürerken buton yerine LoadingBar gösterilir,
-  // böylece çift dokunma da engellenir.
+  iconStrokeWidth?: number;
+  height?: number;
+  radius?: number;
+  fontSize?: number;
+  weight?: 'bold' | 'extrabold';
   loading?: boolean;
-  fullWidth?: boolean;
-  className?: string;
+  // Birincil düğmenin yeşil gölgesi (Main.dc.html 0 10px 22px -8px).
+  raised?: boolean;
+  trailing?: ReactNode;
+  align?: 'center' | 'start';
+  flex?: boolean;
 };
 
-// Flutter theme.dart buton temaları (DESIGN.md "Pill"):
-// filled    -> FilledButton: primary zemin, 52 yükseklik
-// secondary -> OutlinedButton: kenarlıksız soluk zemin (surface-container-high)
-// text      -> TextButton: zeminsiz, primary metin
-const containerClass: Record<ButtonVariant, string> = {
-  filled: 'min-h-[52px] bg-primary px-lg',
-  secondary: 'min-h-[52px] bg-surface-container-high px-lg',
-  text: 'min-h-touch px-md',
-};
-
-const toneFor = { filled: 'on-primary', secondary: 'on-surface', text: 'primary' } as const;
-
+// Tasarımdaki yazılı düğmeler. Basınca scale(.96). Yükleniyorken dönen
+// halka gösterilir ve tekrar basılamaz.
 export function Button({
   label,
-  variant = 'filled',
+  variant = 'primary',
   icon,
+  iconStrokeWidth = 2,
+  height = 64,
+  radius = 20,
+  fontSize = 19,
+  weight = 'bold',
   loading = false,
-  fullWidth = false,
+  raised = variant === 'primary',
+  trailing,
+  align = 'center',
+  flex = false,
   disabled,
-  className,
   ...rest
 }: ButtonProps) {
-  const { colors } = useAppTheme();
+  const { bg, fg, border } = look[variant];
+  const inactive = disabled === true || loading;
 
-  if (loading) {
-    return (
-      <View
-        className={`justify-center ${variant === 'text' ? 'min-h-touch' : 'min-h-[52px]'} ${
-          fullWidth ? 'self-stretch' : ''
-        } ${className ?? ''}`}
-      >
-        <LoadingBar width={fullWidth ? undefined : 160} />
-      </View>
-    );
-  }
-
-  const tone = toneFor[variant];
   return (
-    <Pressable
+    <PressScale
       {...rest}
+      bg={bg}
+      border={border}
       accessibilityRole="button"
-      // İkon glifi de bir Text olduğu için ad yalnızca etiketten gelsin.
       accessibilityLabel={rest.accessibilityLabel ?? label}
-      accessibilityState={{ disabled: disabled === true }}
-      disabled={disabled}
-      className={`flex-row items-center justify-center gap-sm rounded-full ${containerClass[variant]} ${
-        fullWidth ? 'self-stretch' : ''
-      } ${disabled === true ? 'opacity-40' : 'active:opacity-80'} ${className ?? ''}`}
+      accessibilityState={{ disabled: inactive, busy: loading }}
+      disabled={inactive}
+      style={{
+        height,
+        borderRadius: radius,
+        borderWidth: border === undefined ? 0 : 2,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: align === 'center' ? 'center' : 'flex-start',
+        gap: align === 'center' ? 10 : 12,
+        paddingHorizontal: 16,
+        opacity: disabled === true ? 0.5 : 1,
+        flex: flex ? 1 : undefined,
+        boxShadow: raised ? `0px 10px 22px -8px ${fixedColors.primaryShadow}` : undefined,
+      }}
     >
-      {icon !== undefined && <MaterialIcons name={icon} size={20} color={colors[tone]} />}
-      <AppText variant="label-lg" tone={tone}>
+      {loading ? (
+        <Spinner size={22} />
+      ) : (
+        icon !== undefined && (
+          <Icon
+            name={icon}
+            size={fontSize > 18 ? 24 : 20}
+            color={fg}
+            strokeWidth={iconStrokeWidth}
+          />
+        )
+      )}
+      <AppText
+        size={fontSize}
+        weight={weight}
+        tone={fg}
+        numberOfLines={1}
+        style={align === 'start' ? { flex: 1 } : undefined}
+      >
         {label}
       </AppText>
-    </Pressable>
+      {trailing}
+    </PressScale>
   );
 }

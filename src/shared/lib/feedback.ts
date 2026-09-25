@@ -12,7 +12,7 @@ import { friendlyErrorKey } from './firebase/errors';
 
 export function reportError(error: unknown, message?: string): void {
   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  showToast(message ?? i18n.t(friendlyErrorKey(error)));
+  showToast(message ?? i18n.t(friendlyErrorKey(error)), { kind: 'error' });
 }
 
 type FeedbackMutationOptions<TData, TVariables> = Omit<

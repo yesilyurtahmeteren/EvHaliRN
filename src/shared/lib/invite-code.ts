@@ -17,16 +17,18 @@ export function generateInviteCode(random: RandomSource = getRandomValues): stri
   return Array.from(bytes, (byte) => inviteCodeAlphabet[byte & mask]).join('');
 }
 
-// Kullanıcının girdiği ya da kopyalayıp yapıştırdığı kod ("ab7k 9tqx")
-// Firestore'daki doküman ID'sine çevrilir: tüm boşluklar silinir, büyük harf.
+// Kullanıcının girdiği ya da kopyalayıp yapıştırdığı kod ("ab7k-9tqx",
+// "ab7k 9tqx") Firestore'daki doküman ID'sine çevrilir: boşluk ve tireler
+// silinir, büyük harf.
 export function cleanInviteCode(input: string): string {
-  return input.replace(/\s+/g, '').toUpperCase();
+  return input.replace(/[\s-]+/g, '').toUpperCase();
 }
 
-// Görüntüleme: "AB7K9TQX" -> "AB7K 9TQX". 8 karakter değilse olduğu gibi.
+// Görüntüleme (Main.dc.html "EV-8492-HL" biçimi): "AB7K9TQX" -> "AB7K-9TQX".
+// 8 karakter değilse olduğu gibi.
 export function formatInviteCode(code: string): string {
   if (code.length !== inviteCodeLength) {
     return code;
   }
-  return `${code.slice(0, 4)} ${code.slice(4)}`;
+  return `${code.slice(0, 4)}-${code.slice(4)}`;
 }

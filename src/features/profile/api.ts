@@ -1,22 +1,47 @@
-// Flutter FirestoreService.leaveHome / setNotificationsEnabled / setTextScale.
-import { arrayRemove, doc, getFirestore, updateDoc } from '@react-native-firebase/firestore';
+// Profil işlemleri: evden ayrılma, bildirim tercihleri, büyük yazı.
+import {
+  arrayRemove,
+  deleteField,
+  doc,
+  getFirestore,
+  updateDoc,
+} from '@react-native-firebase/firestore';
 
-// Önce üyelikten çıkılır, sonra users.homeId temizlenir (Flutter ile aynı
-// sıra). Kural yalnızca kendi uid'ini çıkarmaya izin veriyor.
-export async function leaveHome({ homeId, uid }: { homeId: string; uid: string }): Promise<void> {
+// Önce üyelikten (ve varsa rol kaydından) çıkılır, sonra users.homeId
+// temizlenir. Kural yalnızca kendi uid'ini çıkarmaya izin veriyor;
+// yönetici, başka üyeler kalıyorsa önce yöneticiliği devretmeli (kural da
+// bunu zorluyor, arayüz önceden uyarıyor).
+export async function leaveHome({
+  homeId,
+  uid,
+  hasRoles,
+}: {
+  homeId: string;
+  uid: string;
+  hasRoles: boolean;
+}): Promise<void> {
   const db = getFirestore();
-  await updateDoc(doc(db, 'homes', homeId), { memberIds: arrayRemove(uid) });
+  await updateDoc(
+    doc(db, 'homes', homeId),
+    hasRoles
+      ? { memberIds: arrayRemove(uid), [`roles.${uid}`]: deleteField() }
+      : { memberIds: arrayRemove(uid) },
+  );
   await updateDoc(doc(db, 'users', uid), { homeId: null });
 }
 
-export function setNotificationsEnabled({
+export type NotificationPref = 'notifyAdded' | 'notifyBought';
+
+export function setNotificationPref({
   uid,
+  pref,
   enabled,
 }: {
   uid: string;
+  pref: NotificationPref;
   enabled: boolean;
 }): Promise<void> {
-  return updateDoc(doc(getFirestore(), 'users', uid), { notificationsEnabled: enabled });
+  return updateDoc(doc(getFirestore(), 'users', uid), { [pref]: enabled });
 }
 
 export function setTextScale({

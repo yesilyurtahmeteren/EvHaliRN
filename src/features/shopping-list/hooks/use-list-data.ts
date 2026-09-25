@@ -2,27 +2,21 @@ import { collection, getFirestore, onSnapshot } from '@react-native-firebase/fir
 import { useQuery } from '@tanstack/react-query';
 
 import { liveQueryOptions, type Subscribe } from '@/shared/lib/firebase/live-query';
-import { itemCategorySchema, type ItemCategory } from '@/shared/schemas';
-
-import { fetchTopCatalog } from '../api';
+import { parseCategory, type ItemCategory } from '@/shared/schemas';
 
 export type CategoriesByName = ReadonlyMap<string, ItemCategory | null>;
 
 export const catalogCategoriesKey = (homeId: string) =>
   ['homes', homeId, 'catalog', 'categories'] as const;
-export const topCatalogKey = (homeId: string) => ['homes', homeId, 'catalog', 'top'] as const;
 
-// Flutter catalogCategoriesStream: normalize ad (doküman ID'si) -> kategori.
+// Normalize ad (doküman ID'si) -> bölüm. Eski 10'lu değerler 4'lüye çevrilir.
 function subscribeCatalogCategories(homeId: string): Subscribe<CategoriesByName> {
   return (onNext, onError) =>
     onSnapshot(
       collection(getFirestore(), 'homes', homeId, 'catalog'),
       (snapshot) => {
         const map = new Map<string, ItemCategory | null>();
-        snapshot.docs.forEach((d) => {
-          const parsed = itemCategorySchema.safeParse(d.data().category);
-          map.set(d.id, parsed.success ? parsed.data : null);
-        });
+        snapshot.docs.forEach((d) => map.set(d.id, parseCategory(d.data().category)));
         onNext(map);
       },
       onError,
@@ -36,16 +30,4 @@ export function useCatalogCategories(homeId: string) {
       subscribeCatalogCategories(homeId),
     ),
   );
-}
-
-// Çip sırası oturum içinde DONDURULUR (Flutter CLAUDE.md, Faz 7 adım 4):
-// count her eklemede değişir, sıra sürekli oynarsa kas hafızası oluşmaz.
-// Bu yüzden canlı dinleyici değil tek okuma; cache'ten hiç düşmez.
-export function useFrozenTopCatalog(homeId: string) {
-  return useQuery({
-    queryKey: topCatalogKey(homeId),
-    queryFn: () => fetchTopCatalog(homeId),
-    staleTime: Infinity,
-    gcTime: Infinity,
-  });
 }

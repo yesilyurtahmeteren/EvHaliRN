@@ -1,54 +1,86 @@
-import { useState, type Ref } from 'react';
-import { TextInput, View, type TextInputProps } from 'react-native';
+import { useEffect, useState, type ReactNode, type Ref } from 'react';
+import { TextInput, type TextInputProps } from 'react-native';
+import Animated, {
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
-import { fontFamilies, typeScale } from '@/shared/theme';
-import { useTextScaleStore } from '@/shared/theme/text-scale-store';
+import { darkColors, Durations, fontFamilies, lightColors } from '@/shared/theme';
 import { useAppTheme } from '@/shared/theme/theme-provider';
 
-import { AppText } from './app-text';
-
 export type TextFieldProps = Omit<TextInputProps, 'style'> & {
-  label?: string;
-  errorText?: string;
-  className?: string;
+  // Her değiştiğinde alan yatayda sallanır (boş gönderim, HANDOFF §2.3).
+  shakeKey?: number;
+  trailing?: ReactNode;
   ref?: Ref<TextInput>;
 };
 
-// Flutter theme.dart inputDecorationTheme karşılığı: kenarlıksız,
-// surface-container-low dolgulu, 16 köşe; odakta 2px primary, hatada error
-// kenarlık. Flutter'daki yüzen etiket yerine alanın üstünde sabit etiket
-// (RN'de yüzen etiket için ek animasyon kodu gerekirdi, işlevi aynı).
+// Main.dc.html ".field": 60 px, 2 px `reed` kenarlık (odakta `brand`),
+// radius 18, `card` zemin, 19 px yazı.
 export function TextField({
-  label,
-  errorText,
-  className,
+  shakeKey = 0,
+  trailing,
   ref,
   onFocus,
   onBlur,
   ...rest
 }: TextFieldProps) {
-  const { colors } = useAppTheme();
-  const multiplier = useTextScaleStore((s) => s.multiplier);
+  const { colors, progress } = useAppTheme();
   const [focused, setFocused] = useState(false);
-  const [fontSize, lineHeight] = typeScale['body-lg'];
-  const hasError = errorText !== undefined && errorText.length > 0;
+  const focus = useSharedValue(0);
+  const shake = useSharedValue(0);
 
-  const borderColor = hasError ? colors.error : focused ? colors.primary : 'transparent';
+  useEffect(() => {
+    focus.value = withTiming(focused ? 1 : 0, { duration: 200 });
+  }, [focus, focused]);
+
+  useEffect(() => {
+    if (shakeKey === 0) {
+      return;
+    }
+    // @keyframes shake: -2, 4, -7, 7, -7, 7, -7, 4, -2 (450 ms, doğrusal).
+    const step = Durations.shake / 10;
+    shake.value = withSequence(
+      ...[-2, 4, -7, 7, -7, 7, -7, 4, -2, 0].map((x) => withTiming(x, { duration: step })),
+    );
+  }, [shake, shakeKey]);
+
+  const boxStyle = useAnimatedStyle(() => {
+    const reed = interpolateColor(progress.value, [0, 1], [lightColors.reed, darkColors.reed]);
+    const brand = interpolateColor(progress.value, [0, 1], [lightColors.brand, darkColors.brand]);
+    return {
+      borderColor: interpolateColor(focus.value, [0, 1], [reed, brand]),
+      backgroundColor: interpolateColor(
+        progress.value,
+        [0, 1],
+        [lightColors.card, darkColors.card],
+      ),
+      transform: [{ translateX: shake.value }],
+    };
+  });
 
   return (
-    <View className={`gap-xs ${className ?? ''}`}>
-      {label !== undefined && (
-        <AppText variant="label-lg" tone={hasError ? 'error' : 'on-surface-variant'}>
-          {label}
-        </AppText>
-      )}
+    <Animated.View
+      style={[
+        {
+          height: 60,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 6,
+          paddingLeft: 16,
+          paddingRight: trailing === undefined ? 16 : 6,
+          borderRadius: 18,
+          borderWidth: 2,
+        },
+        boxStyle,
+      ]}
+    >
       <TextInput
         {...rest}
         ref={ref}
-        accessibilityLabel={rest.accessibilityLabel ?? label}
-        placeholderTextColor={colors['on-surface-variant']}
-        selectionColor={colors.primary}
-        cursorColor={colors.primary}
         onFocus={(event) => {
           setFocused(true);
           onFocus?.(event);
@@ -57,21 +89,20 @@ export function TextField({
           setFocused(false);
           onBlur?.(event);
         }}
-        className="min-h-[56px] rounded-md bg-surface-container-low px-md"
+        placeholderTextColor={colors.muted}
+        cursorColor={colors.brand}
+        selectionColor={colors.brand}
         style={{
-          borderWidth: 2,
-          borderColor,
-          color: colors['on-surface'],
+          flex: 1,
+          minWidth: 0,
+          height: '100%',
           fontFamily: fontFamilies.regular,
-          fontSize: fontSize * multiplier,
-          lineHeight: lineHeight * multiplier,
+          fontSize: 19,
+          color: colors.ink,
+          padding: 0,
         }}
       />
-      {hasError && (
-        <AppText variant="body-sm" tone="error" accessibilityLiveRegion="polite">
-          {errorText}
-        </AppText>
-      )}
-    </View>
+      {trailing}
+    </Animated.View>
   );
 }

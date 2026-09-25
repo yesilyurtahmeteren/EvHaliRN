@@ -1,150 +1,117 @@
-import { updateDoc } from '@react-native-firebase/firestore';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 
-import '@/shared/i18n';
 import { useSessionStore } from '@/features/auth/store';
-import * as profileApi from '@/features/profile/api';
+import { leaveHome, setNotificationPref, setTextScale } from '@/features/profile/api';
 import { ProfileScreen } from '@/features/profile/components/profile-screen';
+import { useToastStore } from '@/shared/components/toast/toast-store';
+import { useHome } from '@/shared/hooks/use-home';
+import { useBoughtItems, useNeededItems } from '@/shared/hooks/use-items';
 import { useUserDoc } from '@/shared/hooks/use-user-doc';
-import { hideToast, useToastStore } from '@/shared/components/toast/toast-store';
-import type { AppUser } from '@/shared/schemas';
 import { useThemeStore } from '@/shared/theme/theme-store';
+import { renderWithTheme, sleep } from '@/test-utils/render';
 
-jest.mock('@react-native-firebase/firestore', () => ({
-  getFirestore: jest.fn(() => ({})),
-  doc: jest.fn((_db, ...path: string[]) => ({ path: path.join('/') })),
-  updateDoc: jest.fn(() => Promise.resolve()),
-  arrayRemove: jest.fn((...values: unknown[]) => ({ arrayRemove: values })),
+jest.mock('expo-router', () => jest.requireActual('@/test-utils/router-mock').mockExpoRouter());
+jest.mock('@/features/profile/api', () => ({
+  leaveHome: jest.fn(() => Promise.resolve()),
+  setNotificationPref: jest.fn(() => Promise.resolve()),
+  setTextScale: jest.fn(() => Promise.resolve()),
 }));
-jest.mock('@/features/auth/api', () => ({ signInWithGoogle: jest.fn(), signOut: jest.fn() }));
+jest.mock('@/features/auth/api', () => ({ signOut: jest.fn(), deleteAccount: jest.fn() }));
+jest.mock('@react-native-firebase/auth', () => ({ getAuth: () => ({ currentUser: null }) }));
+jest.mock('@/shared/hooks/use-home', () => ({ useHome: jest.fn() }));
 jest.mock('@/shared/hooks/use-user-doc', () => ({ useUserDoc: jest.fn() }));
+jest.mock('@/shared/hooks/use-items', () => ({
+  useNeededItems: jest.fn(),
+  useBoughtItems: jest.fn(),
+}));
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(() => Promise.resolve()),
   ImpactFeedbackStyle: { Medium: 'medium' },
 }));
 
-const appUser: AppUser = {
-  uid: 'u1',
-  displayName: 'Ayşe',
-  photoUrl: null,
-  homeId: 'h1',
-  notificationsEnabled: true,
-  textScale: 1,
-};
-
-function mockUserDoc(overrides: Partial<AppUser> = {}) {
-  jest.mocked(useUserDoc).mockReturnValue({ data: { ...appUser, ...overrides } } as never);
+function setData(roles: Record<string, string>, memberIds = ['u1', 'u2']) {
+  jest.mocked(useHome).mockReturnValue({
+    data: { id: 'h1', name: 'Ev', memberIds, inviteCode: 'X', roles },
+  } as never);
+  jest.mocked(useUserDoc).mockReturnValue({
+    data: {
+      uid: 'u1',
+      displayName: 'Zeynep',
+      homeId: 'h1',
+      notificationsEnabled: true,
+      textScale: 1,
+    },
+  } as never);
+  jest.mocked(useNeededItems).mockReturnValue({ data: { items: [] } } as never);
+  jest.mocked(useBoughtItems).mockReturnValue({ data: { items: [] } } as never);
 }
 
-async function renderScreen() {
+beforeEach(() => {
   useSessionStore.getState().setUser({
     uid: 'u1',
-    displayName: 'Ayşe Yılmaz',
-    email: 'ayse@example.com',
+    displayName: 'Zeynep Yılmaz',
+    email: 'zeynep@example.com',
     photoURL: null,
   });
-  const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
-  await render(
-    <QueryClientProvider client={client}>
-      <ProfileScreen />
-    </QueryClientProvider>,
-  );
-}
-
-const writes = () =>
-  jest.mocked(updateDoc).mock.calls.map(([ref, data]) => [(ref as { path: string }).path, data]);
-
-beforeEach(() => mockUserDoc());
-
+});
 afterEach(async () => {
-  await act(async () => {
-    hideToast();
-    useThemeStore.getState().setMode('system');
-  });
+  await act(async () => sleep(0));
   jest.clearAllMocks();
 });
 
-describe('profile api', () => {
-  it('evden ayrılma: önce üyelikten çıkar, sonra homeId temizlenir', async () => {
-    await profileApi.leaveHome({ homeId: 'h1', uid: 'u1' });
-    expect(writes()).toEqual([
-      ['homes/h1', { memberIds: { arrayRemove: ['u1'] } }],
-      ['users/u1', { homeId: null }],
-    ]);
-  });
-});
-
 describe('ProfileScreen', () => {
-  it('Google hesabının adını ve e-postasını gösterir', async () => {
-    await renderScreen();
-    expect(screen.getByText('Ayşe Yılmaz')).toBeOnTheScreen();
-    expect(screen.getByText('ayse@example.com')).toBeOnTheScreen();
+  it('kimlik kartı, rol hapı ve istatistik etiketleri', async () => {
+    setData({ u1: 'admin' });
+    await renderWithTheme(<ProfileScreen />, { homeId: 'h1' });
+    expect(screen.getByText('Zeynep Yılmaz')).toBeOnTheScreen();
+    expect(screen.getByText('zeynep@example.com')).toBeOnTheScreen();
+    expect(screen.getByText('Ev yöneticisi')).toBeOnTheScreen();
+    expect(screen.getByText('Bekleyen')).toBeOnTheScreen();
   });
 
-  it('karanlık mod anahtarı oturum içi tema tercihini değiştirir', async () => {
-    await renderScreen();
-    const toggle = screen.getByRole('switch', { name: 'Karanlık Mod' });
-    expect(toggle).not.toBeChecked();
-
-    await fireEvent.press(toggle);
+  it('tema seçimi kalıcı mağazaya yazılır', async () => {
+    setData({ u1: 'admin' });
+    await renderWithTheme(<ProfileScreen />, { homeId: 'h1' });
+    await fireEvent.press(screen.getByRole('radio', { name: 'Koyu' }));
     expect(useThemeStore.getState().mode).toBe('dark');
+    await fireEvent.press(screen.getByRole('radio', { name: 'Aydınlık' }));
+    expect(useThemeStore.getState().mode).toBe('light');
   });
 
-  it('bildirim tercihini users/{uid} dokümanına yazar', async () => {
-    await renderScreen();
-    await fireEvent.press(screen.getByRole('switch', { name: 'Yeni ürün eklendiğinde bildir' }));
-    await waitFor(() => expect(writes()).toEqual([['users/u1', { notificationsEnabled: false }]]));
+  it('büyük yazı 1.14, bildirim tercihleri ayrı ayrı yazılır', async () => {
+    setData({ u1: 'admin' });
+    await renderWithTheme(<ProfileScreen />, { homeId: 'h1' });
+    await fireEvent.press(screen.getByRole('switch', { name: 'Büyük yazı' }));
+    expect(setTextScale).toHaveBeenCalledWith({ uid: 'u1', textScale: 1.14 });
+    await fireEvent.press(screen.getByRole('switch', { name: 'Alınanlar' }));
+    expect(setNotificationPref).toHaveBeenCalledWith({
+      uid: 'u1',
+      pref: 'notifyBought',
+      enabled: false,
+    });
   });
 
-  it('yazı boyutu çiplerinde seçili olan işaretli, dokununca kaydedilir', async () => {
-    mockUserDoc({ textScale: 1.15 });
-    await renderScreen();
-
-    expect(screen.getByRole('radio', { name: 'Büyük' })).toBeChecked();
-    expect(screen.getByRole('radio', { name: 'Normal' })).not.toBeChecked();
-
-    await fireEvent.press(screen.getByRole('radio', { name: 'Çok büyük' }));
-    await waitFor(() => expect(writes()).toEqual([['users/u1', { textScale: 1.3 }]]));
-  });
-
-  it('evden ayrılma onay ister; vazgeçince hiçbir şey yazılmaz', async () => {
-    await renderScreen();
-    await fireEvent.press(screen.getByRole('button', { name: 'Evden Ayrıl' }));
-    expect(screen.getByText('Evden ayrıl?')).toBeOnTheScreen();
-
-    await fireEvent.press(screen.getByRole('button', { name: 'Vazgeç' }));
-    expect(writes()).toEqual([]);
-  });
-
-  it('onaylanınca evden ayrılır', async () => {
-    await renderScreen();
-    await fireEvent.press(screen.getByRole('button', { name: 'Evden Ayrıl' }));
-    await fireEvent.press(screen.getByRole('button', { name: 'Onayla' }));
-
-    await waitFor(() =>
-      expect(writes()).toEqual([
-        ['homes/h1', { memberIds: { arrayRemove: ['u1'] } }],
-        ['users/u1', { homeId: null }],
-      ]),
+  it('tek yönetici evden ayrılmadan önce yöneticiliği devretmeli', async () => {
+    setData({ u1: 'admin' });
+    await renderWithTheme(<ProfileScreen />, { homeId: 'h1' });
+    await fireEvent.press(screen.getByRole('button', { name: 'Evden ayrıl' }));
+    expect(useToastStore.getState().current?.message).toBe(
+      'Ayrılmadan önce Evim ekranından başka bir üyeyi yönetici yapın.',
     );
+    expect(leaveHome).not.toHaveBeenCalled();
   });
 
-  it('ayrılma başarısızsa hata mesajı gösterir', async () => {
-    jest.mocked(updateDoc).mockRejectedValueOnce(new Error('unavailable'));
-    await renderScreen();
-    await fireEvent.press(screen.getByRole('button', { name: 'Evden Ayrıl' }));
-    await fireEvent.press(screen.getByRole('button', { name: 'Onayla' }));
-
+  it('üye onaylayarak evden ayrılır', async () => {
+    useSessionStore
+      .getState()
+      .setUser({ uid: 'u2', displayName: 'Emre', email: null, photoURL: null });
+    setData({ u1: 'admin' });
+    await renderWithTheme(<ProfileScreen />, { homeId: 'h1' });
+    await fireEvent.press(screen.getByRole('button', { name: 'Evden ayrıl' }));
+    const confirm = screen.getAllByRole('button', { name: 'Evden ayrıl' });
+    await fireEvent.press(confirm[confirm.length - 1]);
     await waitFor(() =>
-      expect(useToastStore.getState().current?.message).toBe('Evden ayrılamadın, tekrar deneyin.'),
+      expect(leaveHome).toHaveBeenCalledWith({ homeId: 'h1', uid: 'u2', hasRoles: true }),
     );
-  });
-
-  it('evi yoksa "Evden Ayrıl" görünmez', async () => {
-    mockUserDoc({ homeId: null });
-    await renderScreen();
-    expect(screen.queryByRole('button', { name: 'Evden Ayrıl' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Çıkış Yap' })).toBeOnTheScreen();
   });
 });

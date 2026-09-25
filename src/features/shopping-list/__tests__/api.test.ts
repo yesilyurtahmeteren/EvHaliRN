@@ -9,7 +9,6 @@ import {
 import {
   addItem,
   cleanupOldBoughtItems,
-  fetchTopCatalog,
   markBought,
   markNeeded,
 } from '@/features/shopping-list/api';
@@ -21,7 +20,9 @@ jest.mock('@react-native-firebase/firestore', () => ({
   getFirestore: jest.fn(() => ({})),
   collection: jest.fn((_db, ...path: string[]) => ({ collection: path.join('/') })),
   doc: jest.fn((parent: { collection?: string }, ...path: string[]) =>
-    path.length === 0 ? { path: `${parent.collection}/newItem` } : { path: path.join('/') },
+    path.length === 0
+      ? { path: `${parent.collection}/newItem`, id: 'newItem' }
+      : { path: path.join('/'), id: path[path.length - 1] },
   ),
   runTransaction: jest.fn((_db, fn: (t: unknown) => Promise<void>) => fn(mockTransaction)),
   serverTimestamp: jest.fn(() => 'SERVER_TIMESTAMP'),
@@ -47,14 +48,12 @@ const sets = () =>
 
 describe('addItem', () => {
   it('hızlı ekleme: ürün + katalog sayacı, mevcut kategori korunur', async () => {
-    mockTransaction.get.mockResolvedValue(
-      catalogSnap({ name: 'Süt', count: 4, category: 'dairy_breakfast' }),
-    );
+    mockTransaction.get.mockResolvedValue(catalogSnap({ name: 'Süt', count: 4, category: 'food' }));
 
     await addItem({ homeId: 'h1', name: 'Süt', uid: 'u1' });
 
     expect(runTransaction).toHaveBeenCalledTimes(1);
-    expect(mockTransaction.get.mock.calls[0][0]).toEqual({ path: 'homes/h1/catalog/süt' });
+    expect(mockTransaction.get.mock.calls[0][0]).toMatchObject({ path: 'homes/h1/catalog/süt' });
     expect(sets()).toEqual([
       [
         'homes/h1/items/newItem',
@@ -74,7 +73,7 @@ describe('addItem', () => {
       ],
       [
         'homes/h1/catalog/süt',
-        { name: 'Süt', count: 5, lastUsedAt: 'SERVER_TIMESTAMP', category: 'dairy_breakfast' },
+        { name: 'Süt', count: 5, lastUsedAt: 'SERVER_TIMESTAMP', category: 'food' },
       ],
     ]);
   });
@@ -91,7 +90,7 @@ describe('addItem', () => {
   });
 
   it('formdan gelen kategori (null dahil) mevcut kategorinin yerine yazılır', async () => {
-    mockTransaction.get.mockResolvedValue(catalogSnap({ count: 2, category: 'dairy_breakfast' }));
+    mockTransaction.get.mockResolvedValue(catalogSnap({ count: 2, category: 'food' }));
 
     await addItem({
       homeId: 'h1',
@@ -110,16 +109,19 @@ describe('addItem', () => {
 });
 
 describe('durum değişimi', () => {
-  it('markBought / markNeeded yalnızca status, boughtBy, boughtAt yazar', async () => {
+  it('markBought / markNeeded durum alanlarını yazar (alındı bildirimi için boughtNotified: false)', async () => {
     await markBought({ homeId: 'h1', itemId: 'i1', uid: 'u2' });
     await markNeeded({ homeId: 'h1', itemId: 'i1' });
 
     expect(jest.mocked(updateDoc).mock.calls).toEqual([
       [
-        { path: 'homes/h1/items/i1' },
-        { status: 'bought', boughtBy: 'u2', boughtAt: 'SERVER_TIMESTAMP' },
+        { path: 'homes/h1/items/i1', id: 'i1' },
+        { status: 'bought', boughtBy: 'u2', boughtAt: 'SERVER_TIMESTAMP', boughtNotified: false },
       ],
-      [{ path: 'homes/h1/items/i1' }, { status: 'needed', boughtBy: null, boughtAt: null }],
+      [
+        { path: 'homes/h1/items/i1', id: 'i1' },
+        { status: 'needed', boughtBy: null, boughtAt: null },
+      ],
     ]);
   });
 });
@@ -150,16 +152,17 @@ describe('cleanupOldBoughtItems', () => {
   });
 });
 
-describe('fetchTopCatalog', () => {
-  it("count'a göre azalan ilk 12 kaydı şemadan geçirerek döner", async () => {
-    jest.mocked(getDocs).mockResolvedValue({
-      docs: [{ id: 'süt', data: () => ({ name: 'Süt', count: 9, category: 'dairy_breakfast' }) }],
-    } as never);
+describe('addItem (yeni bölüm listesi)', () => {
+  it("eski 10'lu kategori 4'lüye çevrilerek geri yazılır, verilen kimlik kullanılır", async () => {
+    mockTransaction.get.mockResolvedValue(catalogSnap({ count: 1, category: 'personal_care' }));
 
-    await expect(fetchTopCatalog('h1')).resolves.toEqual([
-      { id: 'süt', name: 'Süt', count: 9, category: 'dairy_breakfast' },
-    ]);
-    const [q] = jest.mocked(getDocs).mock.calls[0] as unknown as [{ constraints: unknown[] }];
-    expect(q.constraints).toEqual([{ orderBy: ['count', 'desc'] }, { limit: 12 }]);
+    await expect(
+      addItem({ homeId: 'h1', itemId: 'fixed', name: 'Şampuan', uid: 'u1', unit: 'kutu' }),
+    ).resolves.toBe('fixed');
+
+    const [itemCall, catalogCall] = mockTransaction.set.mock.calls;
+    expect(itemCall[0]).toMatchObject({ path: 'homes/h1/items/fixed' });
+    expect(itemCall[1]).toMatchObject({ name: 'Şampuan', unit: 'kutu', status: 'needed' });
+    expect(catalogCall[1]).toMatchObject({ count: 2, category: 'care' });
   });
 });

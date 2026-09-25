@@ -1,45 +1,23 @@
-import {
-  AppMotion,
-  colorTokens,
-  darkColors,
-  hexToRgbChannels,
-  lightColors,
-  memberColorFor,
-  paletteToCssVars,
-  stableHash,
-} from '@/shared/theme';
+import { possessiveSuffix } from '@/shared/lib/turkish';
+import { colorTokens, darkColors, lightColors, memberColorsFor, stableHash } from '@/shared/theme';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const tailwindConfig = require('../../../../tailwind.config.js') as { colorNames: string[] };
+const tokens = require('../../../../docs/design/tokens.json') as {
+  color: { light: Record<string, string>; dark: Record<string, string> };
+};
 
-describe('color tokens', () => {
-  it('tailwind renk adları colors.ts ile birebir aynı', () => {
-    expect(tailwindConfig.colorNames).toEqual([...colorTokens]);
-  });
-
-  it('her iki palette de her token geçerli #RRGGBB', () => {
-    for (const palette of [lightColors, darkColors]) {
-      for (const token of colorTokens) {
-        expect(palette[token]).toMatch(/^#[0-9A-F]{6}$/);
-      }
+describe("renk token'ları", () => {
+  it("tasarım handoff'u tokens.json ile birebir aynı (iki tema)", () => {
+    for (const token of colorTokens) {
+      expect(lightColors[token].toLowerCase()).toBe(tokens.color.light[token].toLowerCase());
+      expect(darkColors[token].toLowerCase()).toBe(tokens.color.dark[token].toLowerCase());
     }
-  });
-
-  it('Flutter açık şemasının marka renkleri korunmuş', () => {
-    expect(lightColors.primary).toBe('#325346');
-    expect(lightColors.surface).toBe('#FCF9F3');
-    expect(darkColors.surface).toBe('#0F1512');
-  });
-
-  it('hex -> "R G B" dönüşümü', () => {
-    expect(hexToRgbChannels('#325346')).toBe('50 83 70');
-    expect(paletteToCssVars(lightColors)['--color-on-primary']).toBe('255 255 255');
+    expect(Object.keys(tokens.color.light).sort()).toEqual([...colorTokens].sort());
   });
 });
 
-describe('member colors', () => {
-  it('aynı uid her zaman aynı rengi alır', () => {
-    expect(memberColorFor('uid-123', 'light')).toBe(memberColorFor('uid-123', 'light'));
+describe('üye renkleri', () => {
+  it('aynı uid her zaman aynı pastel çifti alır', () => {
+    expect(memberColorsFor('uid-123')).toEqual(memberColorsFor('uid-123'));
     expect(stableHash('abc')).toBe(stableHash('abc'));
   });
 
@@ -48,11 +26,21 @@ describe('member colors', () => {
   });
 });
 
-describe('motion', () => {
-  it('sönüm oranı katsayıya doğru çevriliyor', () => {
-    // 0.9 * 2 * sqrt(700) ≈ 47.62
-    expect(AppMotion.spatialDefault.damping).toBeCloseTo(47.62, 1);
-    // oran 1 = kritik sönüm = 2 * sqrt(1600) = 80
-    expect(AppMotion.effectsDefault.damping).toBeCloseTo(80, 5);
+describe('yüzde iyelik eki', () => {
+  it.each([
+    [82, 'si'],
+    [71, 'i'],
+    [50, 'si'],
+    [60, 'ı'],
+    [40, 'ı'],
+    [30, 'u'],
+    [10, 'u'],
+    [100, 'ü'],
+    [0, 'ı'],
+    [3, 'ü'],
+    [6, 'sı'],
+    [9, 'u'],
+  ])('%%%i -> %s', (n, suffix) => {
+    expect(possessiveSuffix(n)).toBe(suffix);
   });
 });

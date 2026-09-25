@@ -1,12 +1,21 @@
 // Flutter services/auth_service.dart karşılığı.
 import {
+  deleteUser,
   getAuth,
   GoogleAuthProvider,
+  reauthenticateWithCredential,
   signInWithCredential,
   signOut as firebaseSignOut,
   type User,
 } from '@react-native-firebase/auth';
-import { doc, getDoc, getFirestore, setDoc, updateDoc } from '@react-native-firebase/firestore';
+import {
+  deleteDoc,
+  doc,
+  getDoc,
+  getFirestore,
+  setDoc,
+  updateDoc,
+} from '@react-native-firebase/firestore';
 import {
   GoogleSignin,
   isErrorWithCode,
@@ -30,9 +39,8 @@ function configureGoogleSignIn(): void {
 
 export type SignInResult = 'success' | 'cancelled';
 
-// Kullanıcı hesap seçiciyi kapatırsa 'cancelled' döner, hata sayılmaz
-// (Flutter'da istisna fırlatılıp "Giriş yapılamadı" gösteriliyordu).
-export async function signInWithGoogle(): Promise<SignInResult> {
+// Hesap seçiciyi açıp Firebase kimlik bilgisini döndürür; vazgeçilirse null.
+async function pickGoogleCredential() {
   configureGoogleSignIn();
   await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
 
@@ -41,16 +49,24 @@ export async function signInWithGoogle(): Promise<SignInResult> {
     response = await GoogleSignin.signIn();
   } catch (error) {
     if (isErrorWithCode(error) && error.code === statusCodes.SIGN_IN_CANCELLED) {
-      return 'cancelled';
+      return null;
     }
     throw error;
   }
   if (!isSuccessResponse(response)) {
+    return null;
+  }
+  const { accessToken } = await GoogleSignin.getTokens();
+  return GoogleAuthProvider.credential(response.data.idToken, accessToken);
+}
+
+// Kullanıcı hesap seçiciyi kapatırsa 'cancelled' döner, hata sayılmaz
+// (Flutter'da istisna fırlatılıp "Giriş yapılamadı" gösteriliyordu).
+export async function signInWithGoogle(): Promise<SignInResult> {
+  const credential = await pickGoogleCredential();
+  if (credential === null) {
     return 'cancelled';
   }
-
-  const { accessToken } = await GoogleSignin.getTokens();
-  const credential = GoogleAuthProvider.credential(response.data.idToken, accessToken);
   const { user } = await signInWithCredential(getAuth(), credential);
   await ensureUserDocument(user);
   return 'success';
@@ -76,4 +92,42 @@ export async function signOut(): Promise<void> {
   // Google oturumu da kapatılır ki bir sonraki girişte hesap seçici açılsın.
   await GoogleSignin.signOut();
   await firebaseSignOut(getAuth());
+}
+
+export class ReauthMismatchError extends Error {
+  constructor() {
+    super('reauth-mismatch');
+    this.name = 'ReauthMismatchError';
+  }
+}
+
+// Hesap silme (Profil > Hesabı sil). Firebase, hesabı silmeden önce yakın
+// zamanda giriş ister: kullanıcı Google hesabını bir kez daha seçer. Sonra
+// (varsa) evden çıkılır (leave), users/{uid} silinir, en son Firebase Auth
+// hesabı silinir. Kullanıcının eklediği ürünler ortak listenin parçası
+// olduğu için silinmez; "ekledi" satırında adı görünmez olur.
+export async function deleteAccount(leave: () => Promise<void>): Promise<'deleted' | 'cancelled'> {
+  const auth = getAuth();
+  const user = auth.currentUser;
+  if (user === null) {
+    return 'cancelled';
+  }
+  configureGoogleSignIn();
+  // Seçici her zaman açılsın (sessiz yeniden giriş olmasın).
+  await GoogleSignin.signOut();
+  const credential = await pickGoogleCredential();
+  if (credential === null) {
+    return 'cancelled';
+  }
+  const { user: again } = await reauthenticateWithCredential(user, credential);
+  if (again.uid !== user.uid) {
+    throw new ReauthMismatchError();
+  }
+
+  await leave();
+  await deleteDoc(doc(getFirestore(), 'users', user.uid));
+  await deleteUser(user);
+  await GoogleSignin.revokeAccess().catch(() => undefined);
+  await GoogleSignin.signOut().catch(() => undefined);
+  return 'deleted';
 }
