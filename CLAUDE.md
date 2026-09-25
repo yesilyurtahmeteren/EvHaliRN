@@ -48,9 +48,9 @@ Bu dosya ile AGENTS.md çelişirse bu dosya kazanır (ör. build EAS değil, yer
   Okuma hatası "veri yok" ile karıştırılmaz, sorgu `error` durumuna düşer.
 - Yazma: `useFeedbackMutation` (hatada titreşim + Türkçe toast, `run()` bool döner). Hata sessizce yutulmaz.
 - Oturum: `useSessionStore` (tek yazan `useAuthListener`), (app) ekranlarında `useRequiredUser()`.
+  Çıkışta `queryClient.clear()` tüm Firestore dinleyicilerini kapatır.
 - Ev: `users/{uid}` tek sorgu (`useUserDoc`); HomeGate `(app)/_layout.tsx`'te. Sekmeler evi
   `useRequiredHomeId()` ile alır (HomeIdProvider, URL parametresi yok).
-  Çıkışta `queryClient.clear()` tüm Firestore dinleyicilerini kapatır.
 - Modeller: `src/shared/schemas/`, katalog ID'si `normalizeName` (asla `toLocaleLowerCase('tr')`).
 - Testler: RNTL 14'te `render`, `renderHook`, `fireEvent.*`, `act` **async**, hepsi `await` edilmeli.
   Jest sahte zamanlayıcıları RNTL'nin async act'ini kilitliyor, kısa gerçek süre + `waitFor` kullan.
