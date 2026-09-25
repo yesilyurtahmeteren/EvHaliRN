@@ -11,6 +11,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useAuthListener } from '@/features/auth/hooks/use-auth-listener';
 import { useSessionStore } from '@/features/auth/store';
+import { initNotifications } from '@/features/notifications/api';
 import { ToastHost } from '@/shared/components/toast/toast-host';
 import { initAppCheck } from '@/shared/lib/firebase/app-check';
 import { queryClient } from '@/shared/lib/query-client';
@@ -19,6 +20,7 @@ import { AppThemeProvider, useAppTheme } from '@/shared/theme/theme-provider';
 void SplashScreen.preventAutoHideAsync();
 // Herhangi bir Auth/Firestore isteğinden önce (Flutter main.dart ile aynı sıra).
 initAppCheck();
+initNotifications();
 
 function RootNavigator() {
   const { scheme } = useAppTheme();

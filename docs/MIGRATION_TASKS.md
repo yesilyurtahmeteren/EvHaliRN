@@ -174,12 +174,21 @@ Feature listesi (Faz 1'den sonra doldurulacak):
 
 ## Faz 5 — Native Özellikler ve Development Build
 
-- [ ] Expo Go'da çalışmayan paketleri (ör. MMKV) belirle.
-- [ ] `eas.json` oluştur; `development`, `preview`, `production` profilleri.
-- [ ] `expo-dev-client` kur.
-- [ ] `eas build --profile development --platform android` ile APK üret ve telefona kurulum adımlarını bana anlat.
-- [ ] İzinleri (`app.json` → `android.permissions`) Flutter'daki `AndroidManifest.xml` ile karşılaştırıp eksiksiz ayarla.
+- [x] Expo Go'da çalışmayan paketleri (ör. MMKV) belirle.
+  > RNFB (app/auth/firestore/app-check), Google Sign-In, OneSignal, MMKV (nitro). İlk ekran bile RNFB'ye
+  > dokunduğu için uygulama Expo Go'da hiç açılmaz; her zaman development build.
+- [x] `eas.json` oluştur; `development`, `preview`, `production` profilleri.
+  > Uygulanmadı: build yerel (CLAUDE.md "Kararlar": `npx expo run:android`, EAS yerine). EAS'a geçilirse eklenir.
+- [x] `expo-dev-client` kur. (Faz 2'de kuruldu.)
+- [x] `eas build --profile development --platform android` ile APK üret ve telefona kurulum adımlarını bana anlat.
+  > Yerel karşılığı: `npx expo run:android`. Bu makinede `./gradlew :app:assembleDebug` ile derleme doğrulandı.
+- [x] İzinleri (`app.json` → `android.permissions`) Flutter'daki `AndroidManifest.xml` ile karşılaştırıp eksiksiz ayarla.
+  > Flutter'ın kendi manifestinde izin yok, hepsi kütüphanelerden. RN şablonunun eklediği depolama ve
+  > SYSTEM_ALERT_WINDOW ile expo-secure-store'un getirdiği USE_BIOMETRIC/USE_FINGERPRINT `blockedPermissions`
+  > ile kaldırıldı (veri minimizasyonu). Release manifesti = Flutter'ın listesi (+ OneSignal READ_APP_BADGE).
+  > SYSTEM_ALERT_WINDOW ve CHANGE_WIFI_MULTICAST_STATE yalnızca debug'da (geliştirici menüsü).
 - [ ] Bildirim, kamera, konum vb. native özellikleri taşı ve telefonda test ettir.
+  > Kod tarafı bitti (OneSignal başlatma, izin, pushTokens senkronu). Kamera/konum yok. Telefonda test bekliyor.
 
 **🛑 Dur ve onayımı bekle.**
 

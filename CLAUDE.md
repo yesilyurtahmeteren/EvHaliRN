@@ -63,6 +63,16 @@ Bu dosya ile AGENTS.md çelişirse bu dosya kazanır (ör. build EAS değil, yer
 - `expo-asset` doğrudan bağımlılık olarak eklendi (Faz 3): `expo`'nun iç bağımlılığıydı ama hoist
   edilmemişti, bu yüzden `@expo/vector-icons` → `expo-font` onu bulamıyordu.
 
+## Native / bildirim (Faz 5)
+
+- OneSignal: `react-native-onesignal` + `onesignal-expo-plugin` (`mode` yalnızca iOS APNs için).
+  App ID `.env`'de (herkese açık). REST API anahtarı ASLA uygulamada değil, Cloudflare Worker secret'ında.
+- İzinler `app.json` → `android.permissions` + `blockedPermissions`. Yeni kütüphane eklenince
+  `processReleaseMainManifest` çıktısındaki izinleri kontrol et; veri minimizasyonuna aykırı olan engellenir.
+- Expo'nun debug anahtarı `android/app/debug.keystore` (Flutter'ın `~/.android/debug.keystore`'undan farklı);
+  SHA'ları Firebase'e ayrıca eklenmeli. Play'deki Flutter sürümü telefondayken debug kurulumu imza
+  uyuşmazlığıyla reddedilir.
+
 ## Flutter CLAUDE.md'den aynen geçerli olanlar
 
 - Güvenlik (§4) pazarlığa kapalı: uygulamaya sır gömülmez, tek güvenlik sınırı `firestore.rules`,

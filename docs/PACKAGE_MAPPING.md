@@ -15,7 +15,7 @@
 | `cloud_firestore` | Tüm veri + offline | `@react-native-firebase/firestore` | ❓ 🔧 |
 | `firebase_app_check` | Play Integrity / debug | `@react-native-firebase/app-check` | ❓ 🔧 |
 | `google_sign_in` | Google hesabı seçimi | `@react-native-google-signin/google-signin` (Expo config plugin'i var) | ❓ 🔧 |
-| `onesignal_flutter` | Push bildirimi | `react-native-onesignal` + `onesignal-expo-plugin` | ❓ 🔧 |
+| `onesignal_flutter` | Push bildirimi | `react-native-onesignal` + `onesignal-expo-plugin` | ✅ onaylandı (Faz 5) 🔧 |
 | `share_plus` | Davet kodu paylaşımı | RN yerleşik `Share` API | ➖ (paket gerekmiyor) |
 | `material_ui` | Material widget'ları | NativeWind + kendi bileşenlerimiz | ✅ |
 | `motor` | M3 yay animasyonları | `react-native-reanimated` `withSpring` | ✅ |

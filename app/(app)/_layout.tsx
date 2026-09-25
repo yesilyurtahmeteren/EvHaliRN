@@ -1,7 +1,9 @@
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
+import { useRequiredUser } from '@/features/auth/store';
 import { useHomeGate } from '@/features/home-onboarding/hooks/use-home-gate';
+import { usePushTokenSync } from '@/features/notifications/hooks/use-push-token-sync';
 import { ErrorView, LoadingScreen } from '@/shared/components/states';
 import { HomeIdProvider } from '@/shared/hooks/home-id';
 
@@ -10,7 +12,10 @@ import { HomeIdProvider } from '@/shared/hooks/home-id';
 // yüklenemedi", homeId yoksa yalnızca Ev Oluştur, varsa sekmeler.
 export default function AppLayout() {
   const { t } = useTranslation();
+  const { uid } = useRequiredUser();
   const gate = useHomeGate();
+  // Flutter HomeGate gibi: oturum açılınca, ev durumundan bağımsız.
+  usePushTokenSync(uid);
 
   if (gate.status === 'loading') {
     return <LoadingScreen />;
