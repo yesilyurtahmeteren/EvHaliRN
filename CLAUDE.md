@@ -39,6 +39,25 @@ Bu dosya ile AGENTS.md çelişirse bu dosya kazanır (ör. build EAS değil, yer
   `fontWeight` ile ağırlık seçilmez, aile adı kullanılır.
 - Kontroller: `npm run typecheck`, `npm run lint`, `npm test`.
 
+## Ortak katman kuralları (Faz 3)
+
+- Metin: ham `<Text>` yerine `AppText` (`variant` = tipografi rolü, `tone` = renk token'ı). Kullanıcının
+  yazı boyutu çarpanı (`text-scale-store`) yalnızca AppText/TextField üzerinden uygulanıyor. Prop adı `role`
+  DEĞİL: RN'nin erişilebilirlik `role` prop'uyla çakışıp tipi `never` yapıyordu.
+- Firestore okuma: `liveQueryOptions(key, subscribe)` + `useQuery` (`src/shared/lib/firebase/live-query.ts`).
+  Okuma hatası "veri yok" ile karıştırılmaz, sorgu `error` durumuna düşer.
+- Yazma: `useFeedbackMutation` (hatada titreşim + Türkçe toast, `run()` bool döner). Hata sessizce yutulmaz.
+- Oturum: `useSessionStore` (tek yazan `useAuthListener`), (app) ekranlarında `useRequiredUser()`.
+  Çıkışta `queryClient.clear()` tüm Firestore dinleyicilerini kapatır.
+- Modeller: `src/shared/schemas/`, katalog ID'si `normalizeName` (asla `toLocaleLowerCase('tr')`).
+- Testler: RNTL 14'te `render`, `renderHook`, `fireEvent.*`, `act` **async**, hepsi `await` edilmeli.
+  Jest sahte zamanlayıcıları RNTL'nin async act'ini kilitliyor, kısa gerçek süre + `waitFor` kullan.
+  Reanimated 4 için jest `resolver: react-native-worklets/jest/resolver.js` gerekli (package.json'da).
+  `npm test` sonunda "worker failed to exit gracefully" uyarısı çıkıyor ama testler geçiyor ve süreç kapanıyor.
+  `--detectOpenHandles` bir kaynak göstermedi.
+- `expo-asset` doğrudan bağımlılık olarak eklendi (Faz 3): `expo`'nun iç bağımlılığıydı ama hoist
+  edilmemişti, bu yüzden `@expo/vector-icons` → `expo-font` onu bulamıyordu.
+
 ## Flutter CLAUDE.md'den aynen geçerli olanlar
 
 - Güvenlik (§4) pazarlığa kapalı: uygulamaya sır gömülmez, tek güvenlik sınırı `firestore.rules`,

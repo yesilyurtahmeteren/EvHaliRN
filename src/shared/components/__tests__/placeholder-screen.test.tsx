@@ -12,6 +12,6 @@ describe('PlaceholderScreen', () => {
 
     expect(view.getByText('Ev')).toBeOnTheScreen();
     expect(view.getByText('Bu ekran henüz taşınmadı.')).toBeOnTheScreen();
-    expect(view.getAllByRole('link')).toHaveLength(6);
+    expect(view.getAllByRole('link')).toHaveLength(5);
   });
 });

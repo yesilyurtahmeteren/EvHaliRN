@@ -9,28 +9,47 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { useAuthListener } from '@/features/auth/hooks/use-auth-listener';
+import { useSessionStore } from '@/features/auth/store';
+import { ToastHost } from '@/shared/components/toast/toast-host';
+import { initAppCheck } from '@/shared/lib/firebase/app-check';
 import { queryClient } from '@/shared/lib/query-client';
 import { AppThemeProvider, useAppTheme } from '@/shared/theme/theme-provider';
 
 void SplashScreen.preventAutoHideAsync();
+// Herhangi bir Auth/Firestore isteğinden önce (Flutter main.dart ile aynı sıra).
+initAppCheck();
 
 function RootNavigator() {
   const { scheme } = useAppTheme();
+  useAuthListener();
+  const status = useSessionStore((s) => s.status);
+  const signedIn = status === 'signedIn';
 
-  // Fontlar expo-font eklentisiyle APK'ya gömülü (çalışma anında yüklenmiyor),
-  // bu yüzden ilk render'da açılış ekranı kapatılabilir. Faz 3'te oturum
-  // durumu belli olana kadar bekletilecek.
+  // Fontlar APK'ya gömülü; açılış ekranı yalnızca oturum durumu belli olana
+  // kadar bekler (Flutter AuthGate'in "bekliyor" hali), böylece giriş
+  // ekranı oturumu açık kullanıcıya bir an bile görünmez.
   useEffect(() => {
-    void SplashScreen.hideAsync();
-  }, []);
+    if (status !== 'initializing') {
+      void SplashScreen.hideAsync();
+    }
+  }, [status]);
 
+  // Korumalı rotalar (Flutter AuthGate): oturum yoksa yalnızca /sign-in,
+  // varsa yalnızca (app). Durum değişince Expo Router kendiliğinden
+  // yönlendirir. Ev durumu (HomeGate) (app)/_layout.tsx'te (Faz 4).
   return (
     <>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="sign-in" />
-        <Stack.Screen name="(app)" />
+        <Stack.Protected guard={signedIn}>
+          <Stack.Screen name="(app)" />
+        </Stack.Protected>
+        <Stack.Protected guard={!signedIn}>
+          <Stack.Screen name="sign-in" />
+        </Stack.Protected>
       </Stack>
+      <ToastHost />
     </>
   );
 }

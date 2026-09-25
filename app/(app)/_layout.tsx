@@ -1,7 +1,8 @@
 import { Stack } from 'expo-router';
 
-// Faz 3'te korumalı rota: oturum yoksa /sign-in, users/{uid} okunamazsa
-// "Ev bilgisi yüklenemedi", homeId yoksa /create-home (docs/ANALYSIS.md §1).
+// Buraya yalnızca oturum açıkken gelinir (app/_layout.tsx, Stack.Protected).
+// Faz 4 "home-onboarding": users/{uid} okunamazsa "Ev bilgisi yüklenemedi",
+// homeId yoksa /create-home, varsa sekmeler (docs/ANALYSIS.md §1).
 export default function AppLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>

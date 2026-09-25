@@ -125,12 +125,20 @@ src/
 
 ## Faz 3 — Ortak Katman
 
-- [ ] `src/shared/lib/api.ts`: base URL, auth header ekleme, token yenileme, merkezi hata yönetimi (Flutter'daki interceptor mantığını birebir taşı).
-- [ ] Tüm veri modellerini Zod şemalarına çevir; tipleri `z.infer` ile türet.
-- [ ] Her şema için Flutter'daki örnek JSON ile doğrulama testi yaz.
-- [ ] Auth akışı: token saklama (expo-secure-store), oturum durumu (Zustand), korumalı rotalar (Expo Router layout'unda yönlendirme).
-- [ ] Ortak UI bileşenleri: Flutter'da tekrar kullanılan widget'ların karşılıkları (Button, TextInput, Card, Loading, ErrorView, EmptyState vb.).
-- [ ] Ortak bileşenler için bileşen testleri.
+- [x] `src/shared/lib/api.ts`: base URL, auth header ekleme, token yenileme, merkezi hata yönetimi (Flutter'daki interceptor mantığını birebir taşı).
+  > REST API yok (ANALYSIS §3.1). Karşılığı: `src/shared/lib/firebase/` (`live-query.ts`: onSnapshot → TanStack cache;
+  > `errors.ts`: hata kodu → Türkçe mesaj; `app-check.ts`: "interceptor" karşılığı App Check) +
+  > `src/shared/lib/feedback.ts` (`useFeedbackMutation`, Flutter `runWithFeedback`).
+- [x] Tüm veri modellerini Zod şemalarına çevir; tipleri `z.infer` ile türet. → `src/shared/schemas/`
+- [x] Her şema için Flutter'daki örnek JSON ile doğrulama testi yaz.
+  > Flutter'da JSON fixture yoktu; CLAUDE.md §3'teki gerçek doküman biçimleriyle yazıldı. Ek olarak
+  > `normalizeName` (Türkçe I/İ), davet kodu ve `joinNames` iş kuralı testleri.
+- [x] Auth akışı: token saklama (expo-secure-store), oturum durumu (Zustand), korumalı rotalar (Expo Router layout'unda yönlendirme).
+  > Token **saklanmıyor**: RNFB oturumu kendisi kalıcı tutuyor, ikinci bir kopya gereksiz. Korumalı rota:
+  > `app/_layout.tsx` → `Stack.Protected`. Giriş ekranında geçici çalışan bir düğme, Profil'de çıkış var.
+- [x] Ortak UI bileşenleri: Flutter'da tekrar kullanılan widget'ların karşılıkları (Button, TextInput, Card, Loading, ErrorView, EmptyState vb.).
+  > `AppText`, `Button`, `TextField`, `Card`, `LoadingBar`, `LoadingScreen`, `ErrorView`, `EmptyState`, `ToastHost` (SnackBar).
+- [x] Ortak bileşenler için bileşen testleri.
 
 **🛑 Dur ve onayımı bekle.**
 

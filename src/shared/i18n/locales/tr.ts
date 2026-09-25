@@ -3,6 +3,24 @@
 const tr = {
   common: {
     appName: 'Ev Hali',
+    retry: 'Tekrar dene',
+    cancel: 'Vazgeç',
+    confirm: 'Onayla',
+    loading: 'Yükleniyor',
+    // joinNames birleştiricisi: "A, B ve C".
+    and: 've',
+  },
+  errors: {
+    generic: 'Bir şeyler ters gitti, tekrar dene.',
+    permissionDenied: 'Bu işlem için yetkin yok görünüyor, tekrar giriş yapmayı dene.',
+  },
+  auth: {
+    signInWithGoogle: 'Google ile Devam Et',
+    signInError: 'Giriş yapılamadı, tekrar deneyin.',
+    signOut: 'Çıkış Yap',
+  },
+  home: {
+    loadError: 'Ev bilgisi yüklenemedi. Bağlantını kontrol edip uygulamayı yeniden aç.',
   },
   nav: {
     home: 'Ev',
