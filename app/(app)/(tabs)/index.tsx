@@ -1,9 +1,3 @@
-import { useTranslation } from 'react-i18next';
+import { ListScreen } from '@/features/shopping-list/components/list-screen';
 
-import { PlaceholderScreen } from '@/shared/components/placeholder-screen';
-
-// Faz 4 "shopping-list" adımında gerçek ekranla değişecek.
-export default function IndexTabScreen() {
-  const { t } = useTranslation();
-  return <PlaceholderScreen title={t('nav.shopping')} />;
-}
+export default ListScreen;

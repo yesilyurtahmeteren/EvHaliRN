@@ -166,7 +166,7 @@ Feature listesi (Faz 1'den sonra doldurulacak):
 - [x] home-onboarding (HomeGate durumları, ev oluştur / eve katıl)
 - [x] shell + profile (sekmeler, tema, bildirim tercihi, yazı boyutu, çıkış, evden ayrıl)
 - [x] home-dashboard (ev adı, durum kartı, davet kodu, üyeler)
-- [ ] shopping-list (liste, gruplama/filtre, işaretle + geri al, hızlı ekleme, çevrimdışı bandı)
+- [x] shopping-list (liste, gruplama/filtre, işaretle + geri al, hızlı ekleme, çevrimdışı bandı)
 - [ ] item-form (ekleme/düzenleme alt sayfası)
 - [ ] notifications (OneSignal, Faz 5)
 

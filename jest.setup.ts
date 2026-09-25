@@ -4,3 +4,18 @@
 import { notifyManager } from '@tanstack/react-query';
 
 notifyManager.setScheduler((callback) => callback());
+
+// FlashList testte yerleşim ölçemez; ölçümler sabit bir ekran boyutu döner
+// ki tüm satırlar render edilsin. (@shopify/flash-list/jestSetup 2.0.2'de
+// artık dışa aktarılmayan RecyclerView'ı kullandığı için doğrudan
+// kullanılamıyor; buradaki yalnızca onun ölçüm kısmı.)
+jest.mock('@shopify/flash-list/dist/recyclerview/utils/measureLayout', () => {
+  const actual = jest.requireActual('@shopify/flash-list/dist/recyclerview/utils/measureLayout');
+  const screen = { x: 0, y: 0, width: 400, height: 900 };
+  return {
+    ...actual,
+    measureParentSize: jest.fn(() => screen),
+    measureFirstChildLayout: jest.fn(() => screen),
+    measureItemLayout: jest.fn(() => ({ x: 0, y: 0, width: 100, height: 100 })),
+  };
+});

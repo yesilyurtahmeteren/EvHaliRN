@@ -6,6 +6,7 @@ import { Pressable, View, type LayoutChangeEvent } from 'react-native';
 
 import { AppText } from '@/shared/components/app-text';
 import { useToastStore } from '@/shared/components/toast/toast-store';
+import { useKeyboardVisible } from '@/shared/hooks/use-keyboard-visible';
 import { useAppTheme } from '@/shared/theme/theme-provider';
 
 type IconName = ComponentProps<typeof MaterialIcons>['name'];
@@ -23,9 +24,23 @@ export function ShellTabBar({ state, descriptors, navigation, insets }: BottomTa
   const { colors } = useAppTheme();
   const setBottomOffset = useToastStore((s) => s.setBottomOffset);
 
+  const keyboardVisible = useKeyboardVisible();
+
   // Toast mesajları çubuğun altında kalmasın.
   useEffect(() => () => setBottomOffset(0), [setBottomOffset]);
   const onLayout = (event: LayoutChangeEvent) => setBottomOffset(event.nativeEvent.layout.height);
+
+  // Flutter'da alt çubuk klavyenin arkasında kalıyordu; burada pencere
+  // klavyeye göre küçüldüğü için çubuk klavyenin üstüne çıkar, alt ekleme
+  // alanıyla klavye arasına girerdi. Klavye açıkken gizlenir.
+  useEffect(() => {
+    if (keyboardVisible) {
+      setBottomOffset(0);
+    }
+  }, [keyboardVisible, setBottomOffset]);
+  if (keyboardVisible) {
+    return null;
+  }
 
   return (
     <View
