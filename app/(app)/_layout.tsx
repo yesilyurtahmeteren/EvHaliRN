@@ -25,7 +25,12 @@ export default function AppLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Protected guard={hasHome}>
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="item-form" options={{ presentation: 'formSheet' }} />
+          {/* Kendi alt sayfa görünümünü çizer (tutamak, köşeler, arka plan
+              karartması); native formSheet Android'de klavyeyle sorunlu. */}
+          <Stack.Screen
+            name="item-form"
+            options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }}
+          />
         </Stack.Protected>
         <Stack.Protected guard={!hasHome}>
           <Stack.Screen name="create-home" />

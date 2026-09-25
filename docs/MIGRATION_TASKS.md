@@ -148,16 +148,16 @@ src/
 
 Faz 1'de belirlenen sırayla, **her seferinde tek bir feature** taşı. Her feature için:
 
-- [ ] Flutter'daki ilgili dosyaları oku, iş mantığını çıkar.
-- [ ] API çağrılarını TanStack Query hook'larına (`useQuery` / `useMutation`) çevir.
-- [ ] Bloc/Riverpod/Provider state'ini: sunucu verisi ise TanStack Query'ye, istemci durumu ise Zustand'a taşı.
-- [ ] Formları react-hook-form + Zod ile yeniden yaz; doğrulama kuralları Flutter'dakiyle aynı olsun.
-- [ ] UI'ı NativeWind ile yeniden yaz; `ListView` → `FlashList`.
-- [ ] Yükleniyor / hata / boş durumlarını ele al.
-- [ ] Tüm metinleri i18n dosyalarına ekle.
-- [ ] Bileşen ve hook testlerini yaz.
-- [ ] Typecheck + lint + test geçsin, commit at.
-- [ ] Telefonda test etmem için bana hangi akışı kontrol etmem gerektiğini söyle.
+- [x] Flutter'daki ilgili dosyaları oku, iş mantığını çıkar.
+- [x] API çağrılarını TanStack Query hook'larına (`useQuery` / `useMutation`) çevir.
+- [x] Bloc/Riverpod/Provider state'ini: sunucu verisi ise TanStack Query'ye, istemci durumu ise Zustand'a taşı.
+- [x] Formları react-hook-form + Zod ile yeniden yaz; doğrulama kuralları Flutter'dakiyle aynı olsun.
+- [x] UI'ı NativeWind ile yeniden yaz; `ListView` → `FlashList`.
+- [x] Yükleniyor / hata / boş durumlarını ele al.
+- [x] Tüm metinleri i18n dosyalarına ekle.
+- [x] Bileşen ve hook testlerini yaz.
+- [x] Typecheck + lint + test geçsin, commit at.
+- [x] Telefonda test etmem için bana hangi akışı kontrol etmem gerektiğini söyle.
 
 Feature listesi (Faz 1'den sonra doldurulacak):
 
@@ -167,7 +167,7 @@ Feature listesi (Faz 1'den sonra doldurulacak):
 - [x] shell + profile (sekmeler, tema, bildirim tercihi, yazı boyutu, çıkış, evden ayrıl)
 - [x] home-dashboard (ev adı, durum kartı, davet kodu, üyeler)
 - [x] shopping-list (liste, gruplama/filtre, işaretle + geri al, hızlı ekleme, çevrimdışı bandı)
-- [ ] item-form (ekleme/düzenleme alt sayfası)
+- [x] item-form (ekleme/düzenleme alt sayfası)
 - [ ] notifications (OneSignal, Faz 5)
 
 ---

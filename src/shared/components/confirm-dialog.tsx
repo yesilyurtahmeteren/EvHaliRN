@@ -29,7 +29,8 @@ export function ConfirmDialog({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <Pressable
-        accessibilityLabel={t('common.cancel')}
+        accessible={false}
+        importantForAccessibility="no"
         onPress={onCancel}
         className="flex-1 items-center justify-center p-xl"
         style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)' }}
