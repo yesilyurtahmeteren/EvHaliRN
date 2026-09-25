@@ -17,6 +17,8 @@ const tr = {
   auth: {
     signInWithGoogle: 'Google ile Devam Et',
     signInError: 'Giriş yapılamadı, tekrar deneyin.',
+    signInSubtitle: 'Evinizin ortak alışveriş listesi ve aile bereketi',
+    signInTrustCaption: 'Ailece güvenli ve senkronize alışveriş deneyimi',
     signOut: 'Çıkış Yap',
   },
   home: {

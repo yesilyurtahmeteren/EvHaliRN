@@ -62,6 +62,8 @@ export function Button({
     <Pressable
       {...rest}
       accessibilityRole="button"
+      // İkon glifi de bir Text olduğu için ad yalnızca etiketten gelsin.
+      accessibilityLabel={rest.accessibilityLabel ?? label}
       accessibilityState={{ disabled: disabled === true }}
       disabled={disabled}
       className={`flex-row items-center justify-center gap-sm rounded-full ${containerClass[variant]} ${

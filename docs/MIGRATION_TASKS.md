@@ -161,7 +161,8 @@ Faz 1'de belirlenen sırayla, **her seferinde tek bir feature** taşı. Her feat
 
 Feature listesi (Faz 1'den sonra doldurulacak):
 
-- [ ] auth (giriş, oturum, korumalı rotalar)
+- [x] auth (giriş, oturum, korumalı rotalar)
+  > Oturum ve korumalı rotalar Faz 3'te geldi; burada Figma giriş ekranı + api/listener/ekran testleri.
 - [ ] home-onboarding (HomeGate durumları, ev oluştur / eve katıl)
 - [ ] shell + profile (sekmeler, tema, bildirim tercihi, yazı boyutu, çıkış, evden ayrıl)
 - [ ] home-dashboard (ev adı, durum kartı, davet kodu, üyeler)
