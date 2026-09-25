@@ -4,11 +4,11 @@
 // kontrol edilir; geçerliliğine Firestore karar verir.
 import { z } from 'zod';
 
-export const homeNameMaxLength = 60;
+import { homeNameSchema } from '@/shared/schemas';
 
-export const createHomeFormSchema = z.object({
-  name: z.string().trim().min(1).max(homeNameMaxLength),
-});
+export { homeNameMaxLength } from '@/shared/schemas';
+
+export const createHomeFormSchema = z.object({ name: homeNameSchema });
 export type CreateHomeForm = z.input<typeof createHomeFormSchema>;
 
 export const joinHomeFormSchema = z.object({
