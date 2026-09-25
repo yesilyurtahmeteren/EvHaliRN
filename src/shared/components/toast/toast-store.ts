@@ -18,6 +18,10 @@ export type Toast = {
 
 type ToastState = {
   current: Toast | null;
+  // Alt kenardan boşluk: sekme çubuğu görünürken mesaj çubuğun üstünde
+  // çıkar (ShellTabBar yüksekliğini buraya yazar, kalkınca sıfırlar).
+  bottomOffset: number;
+  setBottomOffset: (offset: number) => void;
   show: (message: string, options?: { action?: ToastAction; durationMs?: number }) => number;
   hide: (id?: number) => void;
 };
@@ -26,6 +30,8 @@ let nextId = 1;
 
 export const useToastStore = create<ToastState>((set, get) => ({
   current: null,
+  bottomOffset: 0,
+  setBottomOffset: (bottomOffset) => set({ bottomOffset }),
   show: (message, options = {}) => {
     const id = nextId++;
     set({

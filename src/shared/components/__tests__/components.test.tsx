@@ -4,6 +4,8 @@ import '@/shared/i18n';
 import { AppText } from '@/shared/components/app-text';
 import { Button } from '@/shared/components/button';
 import { Card } from '@/shared/components/card';
+import { Chip } from '@/shared/components/chip';
+import { ConfirmDialog } from '@/shared/components/confirm-dialog';
 import { EmptyState, ErrorView, LoadingScreen } from '@/shared/components/states';
 import { TextField } from '@/shared/components/text-field';
 import { typeScale } from '@/shared/theme';
@@ -115,5 +117,52 @@ describe('durum ekranları', () => {
     );
     expect(screen.getByText('Evde eksik bir şey yok')).toBeOnTheScreen();
     expect(screen.getByText('Açıklama')).toBeOnTheScreen();
+  });
+});
+
+describe('Chip', () => {
+  it('seçili durumunu radyo olarak bildirir ve dokunulabilir', async () => {
+    const onPress = jest.fn();
+    await render(<Chip label="Büyük" selected onPress={onPress} />);
+
+    const chip = screen.getByRole('radio', { name: 'Büyük' });
+    expect(chip).toBeChecked();
+    await fireEvent.press(chip);
+    expect(onPress).toHaveBeenCalled();
+  });
+});
+
+describe('ConfirmDialog', () => {
+  it('görünmezken içerik yok', async () => {
+    await render(
+      <ConfirmDialog
+        visible={false}
+        title="Evden ayrıl?"
+        body="Açıklama"
+        onCancel={jest.fn()}
+        onConfirm={jest.fn()}
+      />,
+    );
+    expect(screen.queryByText('Evden ayrıl?')).toBeNull();
+  });
+
+  it('Vazgeç ve Onayla doğru geri çağrıları çalıştırır', async () => {
+    const onCancel = jest.fn();
+    const onConfirm = jest.fn();
+    await render(
+      <ConfirmDialog
+        visible
+        title="Kodu yenile?"
+        body="Eski kod çalışmayacak."
+        onCancel={onCancel}
+        onConfirm={onConfirm}
+      />,
+    );
+
+    expect(screen.getByText('Eski kod çalışmayacak.')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Onayla' }));
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    await fireEvent.press(screen.getByRole('button', { name: 'Vazgeç' }));
+    expect(onCancel).toHaveBeenCalledTimes(1);
   });
 });

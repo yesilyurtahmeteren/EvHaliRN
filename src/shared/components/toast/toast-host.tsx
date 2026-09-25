@@ -8,11 +8,11 @@ import { spacing } from '@/shared/theme';
 
 import { useToastStore } from './toast-store';
 
-// Kök layout'ta bir kez render edilir. Alt boşluk: sekme çubuğu Faz 4
-// "shell" adımında özel çubukla değişecek; o zaman bottomOffset ile
-// çubuğun üstüne taşınır.
-export function ToastHost({ bottomOffset = 0 }: { bottomOffset?: number }) {
+// Kök layout'ta bir kez render edilir. Sekme çubuğu varken onun üstünde
+// çıkar (toast-store bottomOffset); yoksa alt güvenli alanın üstünde.
+export function ToastHost() {
   const toast = useToastStore((s) => s.current);
+  const bottomOffset = useToastStore((s) => s.bottomOffset);
   const hide = useToastStore((s) => s.hide);
   const insets = useSafeAreaInsets();
 
@@ -35,7 +35,7 @@ export function ToastHost({ bottomOffset = 0 }: { bottomOffset?: number }) {
         position: 'absolute',
         left: spacing.md,
         right: spacing.md,
-        bottom: insets.bottom + spacing.md + bottomOffset,
+        bottom: (bottomOffset > 0 ? bottomOffset : insets.bottom) + spacing.md,
       }}
     >
       <Animated.View
