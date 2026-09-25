@@ -7,6 +7,63 @@ paket eşlemesi: `docs/PACKAGE_MAPPING.md`.
 Expo'nun genel ajan kuralları (sürüme uygun belgeleri kullan, `npx expo install`, CNG): @AGENTS.md
 Bu dosya ile AGENTS.md çelişirse bu dosya kazanır (ör. build EAS değil, yerel).
 
+## Güncel durum (2026-09-25) — yeni oturum buradan başlar
+
+- **Fazlar:** 1-4 tamam (tüm ekranlar taşındı). Faz 5 kodu tamam (`45bdcca`: OneSignal + izin politikası);
+  uygulama A53'te girişten listeye uçtan uca çalıştı. Faz 6 başlamadı.
+- **Faz 5'te kullanıcıdan bekleyen cihaz kontrolleri** (sonuçlar henüz gelmedi):
+  1. Push bildirimi: başka hesaptan ürün eklenince A53'e bildirim geliyor mu, dokununca liste açılıyor mu?
+  2. Uçak modunda ekleme: `addItem` transaction'ı çevrimdışı hata veriyor mu (Flutter'la aynı yöntem)?
+  3. Ürünü hiç eklenmemiş bir adla yeniden adlandırınca `setCatalogCategory` (merge) kurala takılıyor mu
+     (katalog kaydında `count` yok → `count is int` şartı)? Flutter'da da aynı; kural DEĞİŞTİRİLMEZ.
+- **Cihazda çalıştırma:** `cd ~/AndroidStudioProjects/EvHaliRN && JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ANDROID_HOME=~/Library/Android/sdk npx expo run:android`
+  (`--device` seri no değil model adı ister; tek cihaz bağlıysa parametresiz). Sadece JS değiştiyse Metro
+  (`npx expo start`) yeterli, yeniden derleme gerekmez. `CI=1` Metro'da hot reload'u kapatır, kullanma.
+
+## Sıradaki iş: animasyon / geçiş yumuşatma (kullanıcı talebi, 2026-09-25)
+
+Kullanıcı şikâyeti: "fonksiyonlara tıkladığımda geçişler çok sert". Bu ayrı bir oturumda ele alınacak.
+Başlamadan önce kullanıcıya hangi ekran/etkileşimde en çok rahatsız olduğunu sormak faydalı; aşağıdaki
+envanter tahmini öncelik sırası.
+
+**Hazır altyapı (kullanılmıyor):** `src/shared/theme/motion.ts` → `AppMotion.spatialFast/Default/Slow` ve
+`effectsFast/Default/Slow` (Flutter `motor` M3 yaylarının Reanimated `withSpring` karşılığı, sönüm oranı
+katsayıya çevrilmiş). Kodda hiçbir yerde kullanılmıyor, ilk iş bunları devreye almak. "Hareketi azalt"
+açıkken Flutter 100 ms lineer geçişe düşüyordu (`AppMotion.reducedMotionDurationMs`); Reanimated'ta
+`useReducedMotion()` ya da animasyon config'inde `reduceMotion` ile aynı davranış korunmalı.
+
+**Mevcut durum (animasyon olan / olmayan yerler):**
+| Nerede | Şu an | Dosya |
+|---|---|---|
+| Sekme geçişi (Ev/Alışveriş/Profil) | Animasyon yok, anında değişiyor | `app/(app)/(tabs)/_layout.tsx` (js-tabs; `animation` screenOption'ı var mı SDK 57 belgesinden bak) |
+| Alt çubuk seçili sekme / ortadaki sepet | Anında renk değişimi | `src/features/shell/components/shell-tab-bar.tsx` |
+| Ev Oluştur ↔ sekmeler, giriş ↔ uygulama | `Stack.Protected` değişimi, varsayılan geçiş | `app/_layout.tsx`, `app/(app)/_layout.tsx` |
+| Ürün formu (alt sayfa) | `transparentModal` + `slide_from_bottom`; karartma da içerikle birlikte kayıyor (ayrı fade yok), sürükleyerek kapatma yok | `app/(app)/_layout.tsx`, `src/features/item-form/components/item-form-screen.tsx` |
+| Onay / ev adı pencereleri | RN `Modal` `animationType="fade"` (kart ölçeklenmiyor) | `confirm-dialog.tsx`, `rename-home-dialog.tsx` |
+| Ürün işaretleme | Kutu anında doluyor; satır 250 ms bekleyip 200 ms `withTiming` ile soluyor; satır kaybolunca liste zıplıyor (yükseklik animasyonu yok) | `item-tile.tsx`, `use-check-off.ts` |
+| Listeye ürün ekleme / kategori grubu oluşma | Animasyon yok (FlashList satırı anında beliriyor) | `shopping-list/components/list-screen.tsx` |
+| Alınanlar bölümünü aç/kapa | Anında, ok ikonu dönmüyor | `list-sections.tsx` (`BoughtHeader`) |
+| Çip seçimi (filtre, yazı boyutu, kategori, birim) | Anında renk + tik | `src/shared/components/chip.tsx` |
+| Onay kutusu | Anında dolu/boş | `src/shared/components/checkbox.tsx` |
+| Düğmeler | Yalnızca `active:opacity-80`, ölçek/ripple yok | `button.tsx` ve Pressable'lar |
+| Anahtarlar (karanlık mod, bildirim, acil) | RN `Switch` varsayılanı | `profile-screen.tsx`, `item-form.tsx` |
+| Karanlık mod geçişi | Tüm renkler anında değişiyor | `theme-provider.tsx` |
+| Toast | `FadeInDown` / `FadeOutDown` (tek iyi örnek) | `toast/toast-host.tsx` |
+| Yükleniyor çubuğu | `withRepeat(withTiming)` | `loading-bar.tsx` |
+
+**Kurallar:**
+- Yeni paket ekleme (Moti, Lottie, `@gorhom/bottom-sheet` vb.) kullanıcı onayı ister. Reanimated 4 +
+  Gesture Handler zaten kurulu; önce bunlarla çöz (layout animasyonları `entering/exiting/layout`,
+  `LinearTransition`, `useAnimatedStyle`). Sürükleyerek kapatılan alt sayfa gerekiyorsa önce sor.
+- FlashList v2'de satır giriş/çıkış animasyonu Reanimated layout animasyonlarıyla sorunlu olabilir;
+  SDK/FlashList belgesine bakmadan varsaymayın, gerekirse cihazda deneyin.
+- Başarı ölçütü bozulmamalı: "süt bitti" 3 saniyede. Hızlı ekleme alanında klavye kapanmamalı; ekleme
+  animasyonu girişi yavaşlatmamalı (M3 "fast" yaylar, 150-250 ms).
+- İşaretleme akışının zamanlaması (250 ms bekle + 200 ms sol, bu pencerede geri al) iş kuralıdır;
+  görünüm yumuşatılabilir ama pencere ve "Geri al" davranışı korunmalı (`use-check-off.test.tsx`).
+- Testler: Reanimated jest'te animasyonları anında bitirir; mevcut 177 test yeşil kalmalı. Görsel sonuç
+  mutlaka A53'te kontrol edilmeli (jest animasyon kalitesini ölçmez).
+
 ## Kararlar (2026-09-24, kullanıcı onayıyla)
 
 - Taşıma onaylandı. MIGRATION_TASKS.md'deki teknoloji yığını (Zustand, TanStack Query, NativeWind vb.),
